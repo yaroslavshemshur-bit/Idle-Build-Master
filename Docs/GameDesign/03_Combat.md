@@ -1,6 +1,6 @@
 # 03 — Combat
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-28
 
 ## Combat philosophy
@@ -657,6 +657,66 @@ The player should solve these by changing:
 
 The player should not need to dodge telegraphs manually.
 
+## First Location Boss baseline
+
+The first Location Boss must already demonstrate the game's buildcraft hook.
+
+It should not be a placeholder stat wall.
+
+At the same time, it should be passable for almost every player because the first boss must create curiosity rather than rejection.
+
+### Core mechanic: Fortify → Break → Exposed
+
+Working behavior:
+
+1. Boss fights normally.
+2. Boss enters **Fortify** periodically.
+3. During Fortify, Block increases heavily.
+4. Successful hero hits contribute toward breaking Fortify.
+5. After enough valid hits, Fortify breaks.
+6. Boss enters **Exposed** for a limited duration.
+7. During Exposed, Block is greatly reduced and/or incoming damage is amplified.
+8. Boss returns to normal and the cycle can repeat.
+
+Exact timings, Block values and required hit counts belong to first-Location balance.
+
+### Why this is the first boss mechanic
+
+Different build directions solve the same mechanic differently:
+
+- **Attack Speed** breaks Fortify quickly.
+- **Max Damage / Strength** gets high value during Exposed windows.
+- **Block Bypass** partially ignores Fortify.
+- **Sustain** survives long cycles and chips the Boss down.
+- **Death / Revive** can continue making permanent HP progress across repeated hero deaths.
+
+The player does not manually react to the phase.
+
+The build reacts.
+
+### Accessibility constraint
+
+The first Boss should not use a universal hard fail.
+
+For the first implementation it should avoid:
+
+- healing to full;
+- infinite regeneration that outpaces almost every build;
+- hard enrage wipe;
+- mandatory manual timing;
+- an unavoidable DPS timer.
+
+Because Boss HP persists through hero deaths, even a weak build can usually make eventual progress.
+
+Target outcome:
+
+- a good build wins quickly and feels clever;
+- an average build wins normally;
+- a weak build may take several deaths or several minutes;
+- only pathological / nonfunctional setups should feel practically impossible.
+
+This preserves the game's no-formal-defeat philosophy while still making the first Boss mechanically memorable.
+
 ## No formal defeat state
 
 Normal combat has no global "Defeat" state.
@@ -901,6 +961,9 @@ The production goal is to create a large amount of build content without requiri
 27. Multiplicative timed stacks multiply exponentially.
 28. Combat uses an explicit deterministic event-resolution order.
 29. Attack Speed keeps the reference logarithmic curve but removes the gameplay hard cap as a deliberate project deviation.
+30. The first Location Boss uses a real build-check mechanic rather than a placeholder stat wall.
+31. First Boss baseline is Fortify → Break → Exposed.
+32. The first Boss avoids a universal hard fail and should be eventually passable by almost every functional build.
 
 ## Open questions for later
 
