@@ -30,12 +30,13 @@ Planned next:
 
 ### Content
 
-Will be added when the systems require concrete content tables:
+- [Powers](Content/Powers.md)
+
+Planned next:
 
 - Enemies
 - Locations
 - Items
-- Powers
 
 ### Economy
 
