@@ -165,13 +165,13 @@ It teaches one new combat relationship at a time.
 ## P005 — Stormbrand
 
 **Reference:** Electrokinesis  
-**Prototype effects:**
+**Initial effects:**
 - 50% chance to ignore 50% of enemy Block.
 - 20% chance to Stun the enemy for 1 second on hit.
 - Stun cooldown: 1 second.
 
 **Reference unlock:** Progress Level 2 / reach level 20  
-**Our unlock:** Early World Progress milestone 2  
+**Our unlock:** First Location reference-equivalent level 20 milestone  
 **Family:** Block Bypass / CC  
 **Trade-off:** None  
 **Multi-enemy adjustment:** No immediate change; proc applies to current hit target. Re-evaluate once AoE attacks exist.  
@@ -187,12 +187,12 @@ It teaches one new combat relationship at a time.
 ## P006 — Ghost Step
 
 **Reference:** Phasing  
-**Prototype effects:**
+**Initial effects:**
 - 20% chance to directly attack after getting hit.
 - Attack first at encounter start.
 
 **Reference unlock:** Progress Level 3 / reach level 30  
-**Our unlock:** Early World Progress milestone 3  
+**Our unlock:** First Location reference-equivalent level 30 milestone  
 **Family:** Counterattack / Initiative  
 **Trade-off:** None  
 **Multi-enemy adjustment:** **Normalize/Test.** More enemies create more incoming-hit proc opportunities.  
@@ -208,12 +208,12 @@ It teaches one new combat relationship at a time.
 ## P007 — Flame Ward
 
 **Reference:** Pyrokinetic  
-**Prototype effects:**
+**Initial effects:**
 - 100% chance to damage the source enemy for 20% of damage when getting hit.
 - 100% chance to ignore 20% of enemy Block.
 
 **Reference unlock:** Progress Level 4 / reach level 40  
-**Our unlock:** Early World Progress milestone 4  
+**Our unlock:** First Location reference-equivalent level 40 milestone  
 **Family:** Reactive Damage / Block Bypass  
 **Trade-off:** None  
 **Multi-enemy adjustment:** **Normalize/Test.** Reflect effect can trigger much more often in swarm encounters.  
@@ -232,7 +232,7 @@ It teaches one new combat relationship at a time.
 **Reference:** Telekinesis  
 **Initial effect:** Max Damage ×10  
 **Reference unlock:** Progress Level 5 / reach level 50  
-**Our unlock:** Early World Progress milestone 5  
+**Our unlock:** First Location reference-equivalent level 50 milestone  
 **Family:** Max Damage  
 **Trade-off:** None  
 **Multi-enemy adjustment:** None  
@@ -250,35 +250,35 @@ It teaches one new combat relationship at a time.
 ## P009 — Battle Insight
 
 **Reference:** Psychometry  
-**Prototype effects:**
+**Initial effects:**
 - Accuracy ×5.
-- Run XP multiplier ×5.
+- EXP Multi ×5.
 
 **Reference unlock:** Progress Level 6 / reach level 60  
-**Our unlock:** Early World Progress milestone 6  
+**Our unlock:** First Location reference-equivalent level 60 milestone  
 **Family:** Accuracy / Progression  
 **Trade-off:** None  
 **Multi-enemy adjustment:** None  
-**Implementation:** Stat multiplier + run-XP multiplier
+**Implementation:** Stat multiplier + EXP-income multiplier
 
-**Balance note:** XP ×5 is intentionally copied from the reference for initial implementation testing. This is pacing-sensitive in our Run Level system and must be benchmarked before final balance.
+**Balance note:** EXP ×5 is intentionally copied from the reference. It accelerates spendable stat growth but does not directly advance World Progress or Power milestones.
 
 **Primary synergies:**
 - Eagle Eye.
 - Precision Training.
-- Any build that values reaching more Power choices quickly.
+- Any build that benefits from faster STR / VIT / AGI / DEX growth.
 
 ---
 
 ## P010 — Trickster Form
 
 **Reference:** Shapeshifting  
-**Prototype effects:**
+**Initial effects:**
 - 10% chance that an attacking enemy attacks itself instead.
 - Attack first at encounter start.
 
 **Reference unlock:** Progress Level 7 / reach level 70  
-**Our unlock:** Early World Progress milestone 7  
+**Our unlock:** First Location reference-equivalent level 70 milestone  
 **Family:** Control / Initiative  
 **Trade-off:** None  
 **Multi-enemy adjustment:** Source-enemy rule. Each attacking enemy resolves its own self-hit chance. **Normalize/Test** in large groups.  
@@ -312,9 +312,9 @@ It teaches one new combat relationship at a time.
 ## P012 — Domination
 
 **Reference:** Mind Control  
-**Prototype effects:**
+**Initial effects:**
 - 30% chance that an attacking enemy attacks itself instead.
-- Run XP multiplier ×10.
+- EXP Multi ×10.
 
 **Reference unlock:** Progress Level 9 / reach level 90  
 **Our unlock:** Early World Progress milestone 9  
@@ -323,12 +323,12 @@ It teaches one new combat relationship at a time.
 **Multi-enemy adjustment:** **Normalize/Test.** Independent enemies create more self-hit opportunities.  
 **Implementation:** Incoming-attack replacement + XP multiplier
 
-**Balance note:** The reference's XP ×10 is intentionally retained for prototype evaluation. This may strongly accelerate Power acquisition in our Run Level structure.
+**Balance note:** The reference's EXP ×10 is intentionally retained. It strongly accelerates spendable stat growth but does not directly change Power-choice cadence.
 
 **Primary synergies:**
 - Trickster Form.
 - Calm Guard.
-- Battle Insight for extreme run-level acceleration.
+- Battle Insight for extreme EXP and primary-stat acceleration.
 
 ---
 
@@ -378,7 +378,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P015 — Feline Grace
 
 **Reference:** Cat Power  
-**Prototype effects:**
+**Initial effects:**
 - Agility ×5.
 - Max Damage ×5.
 
@@ -399,7 +399,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P016 — Spider Instinct
 
 **Reference:** Spider Power  
-**Prototype effects:**
+**Initial effects:**
 - Agility ×3.
 - 10% chance on hit to multiply enemy Attack Speed by 0.5 for 1 second.
 - 10% chance on hit to multiply enemy Evasion by 0.5 for 1 second.
@@ -421,7 +421,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P017 — Eagle Eye
 
 **Reference:** Eagle Eyes  
-**Prototype effects:**
+**Initial effects:**
 - Accuracy ×5.
 - Increase Min Damage by 20% of Accuracy.
 
@@ -442,7 +442,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P018 — Stone Form
 
 **Reference:** Stone Body  
-**Prototype effects:**
+**Initial effects:**
 - Strength ×2.
 - Block ×5.
 - Attack Speed ×0.5.
@@ -486,7 +486,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P020 — Crippling Presence
 
 **Reference:** Cockroach Power  
-**Prototype effects:**
+**Initial effects:**
 - Accuracy ×3.
 - Vitality ×0.5.
 - 50% chance on hit to multiply enemy Vitality by 0.75 for 3 seconds.
@@ -508,7 +508,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P021 — Calm Guard
 
 **Reference:** Calming  
-**Prototype effects:**
+**Initial effects:**
 - Vitality ×2.
 - 50% chance when hit to multiply source enemy Attack Speed by 0.5 for 1 second.
 
@@ -529,7 +529,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P022 — Healing Focus
 
 **Reference:** Healing  
-**Prototype effects:**
+**Initial effects:**
 - Vitality ×5.
 - Regeneration ×10.
 - Max Damage ×0.5.
@@ -552,7 +552,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P023 — Blood Drinker
 
 **Reference:** Matter Ingestion  
-**Prototype effects:**
+**Initial effects:**
 - Vitality ×5.
 - Regeneration ×2.
 - 25% chance to heal for 10% of damage on hit.
@@ -574,7 +574,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P024 — Mirror Veil
 
 **Reference:** Illusion Creation  
-**Prototype effects:**
+**Initial effects:**
 - 10% chance that an attacking enemy attacks itself instead.
 - Evasion ×5.
 
@@ -595,7 +595,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P025 — Radiation Curse
 
 **Reference:** Radiation Body  
-**Prototype effects:**
+**Initial effects:**
 - Regeneration ×0.2.
 - 100% chance to damage the source enemy for 50% of damage when getting hit.
 - 100% chance to ignore 50% of enemy Block.
@@ -620,20 +620,21 @@ These Powers reward the player for using specific parts of the combat system.
 
 # Initial unlock sequence
 
-The intended first pass is:
+The first Location is normalized to the Idle Superpowers original-timeline progression from levels 1–70.
 
 | Phase | Newly available Powers | Approx. total PowerDex |
 |---|---|---:|
-| Fresh account | P001–P003 | 3 |
-| Early first run | P005–P009 progressively | 8 |
-| Late first run | P010–P013 progressively | 12 |
-| First reset | P004 | 13 |
-| Early stat achievements | P014–P021 | 14–21 |
-| Deeper stat / damage achievements | P022–P025 | 22–25 |
+| Fresh account | P001–P003 eligible for first choice | 3 |
+| Reference-equivalent level 20 | P005 Stormbrand unlocks | 4 |
+| Reference-equivalent level 30 | P006 Ghost Step unlocks + special first-run Power choice | 5 |
+| Reference-equivalent level 40 | P007 Flame Ward unlocks | 6 |
+| Reference-equivalent level 50 | P008 Force Grip unlocks + normal Power choice | 7 |
+| Reference-equivalent level 60 | P009 Battle Insight unlocks | 8 |
+| Reference-equivalent level 70 / first Location Boss | P010 Trickster Form unlocks | 9 |
+| First reset | P004 Iron Constitution unlocks | 10 |
+| Following progression | P011–P013 and achievement Powers enter over time | 11+ |
 
-The exact timing and achievement thresholds are **not** locked.
-
-The ordering and reference mechanics are the important part.
+The exact display names of the progression milestones can differ from the reference, but the early cadence is intentionally inherited.
 
 # First implementation build clusters
 
@@ -734,20 +735,18 @@ Reason:
 
 Several enemies can independently attack the hero, increasing trigger frequency beyond the 1v1 reference.
 
-## XP multipliers
+## EXP multipliers
 
-Highest risk:
+Reference values:
 
-- Battle Insight: XP ×5
-- Domination: XP ×10
+- Battle Insight: EXP ×5
+- Domination: EXP ×10
 
-Reason:
+These behave close to the reference because EXP is spent on primary stats rather than used as a Power-progress bar.
 
-Our Run Level directly controls Power acquisition.
+They can still dramatically increase combat growth and therefore indirectly accelerate world pushing.
 
-These effects may accelerate not only stats, but the rate at which the build gains new mechanics.
-
-Do not preemptively remove them; implement first and measure.
+Keep the reference values first and calibrate only after the first Location economy is playable.
 
 ## Control
 
