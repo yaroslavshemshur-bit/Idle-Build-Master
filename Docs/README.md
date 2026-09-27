@@ -20,10 +20,10 @@ Source of truth for game design and production decisions.
 - [01 — Core Loop](GameDesign/01_Core_Loop.md)
 - [02 — Run & Progression Structure](GameDesign/02_Run_Progression.md)
 - [03 — Combat](GameDesign/03_Combat.md)
+- [04 — Powers & Build Archetypes](GameDesign/04_Powers_Builds.md)
 
 Planned next:
 
-- 04 — Powers & Build Archetypes
 - 05 — Collections
 - 06 — World & Locations
 - 07 — Prestige
@@ -61,6 +61,19 @@ Will be added after the MVP gameplay skeleton is stable:
 5. **Production cost matters.** Prefer mechanics that create combinatorial gameplay depth without requiring large amounts of unique animation or art.
 6. **Balance numbers come later.** First define relationships, choices and progression structure; then tune timings and values.
 7. **Discuss first, commit second.** New design branches are discussed in chat before they are promoted to locked decisions in Docs.
+
+## Balance reuse policy
+
+When a mechanic is functionally equivalent to Idle Superpowers, use the reference game's values and curves as the first prototype baseline.
+
+Adjust only where our systems materially differ, especially:
+
+- multiple simultaneous enemies;
+- AoE;
+- Crit;
+- Bleed / Poison;
+- gear reset / retention;
+- different progression pacing.
 
 ## Current design thesis
 
