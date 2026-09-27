@@ -1,6 +1,6 @@
 # 02 — Run & Progression Structure
 
-**Status:** Draft v0.5  
+**Status:** Draft v0.6  
 **Date:** 2026-09-28
 
 ## Purpose of a run
@@ -462,7 +462,7 @@ Possible rewards include:
 - a Collection-related unlock;
 - access to a new system.
 
-This prevents the game from reducing all meaningful progression to XP alone.
+This prevents the game from reducing all meaningful progression to EXP alone.
 
 ## Starting-build control
 
@@ -690,7 +690,8 @@ The player should immediately understand:
 
 ### Lost
 
-- Run Level
+- Current EXP
+- EXP-purchased primary-stat upgrades
 - Current Powers
 - Temporary run progression
 - Most unprotected gear
