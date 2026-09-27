@@ -1,6 +1,6 @@
 # 04 — Powers & Build Archetypes
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-28
 
 ## Power-system philosophy
@@ -95,7 +95,9 @@ Trade-offs should exist because they create interesting build direction, not bec
 
 ## Power-choice model
 
-The player periodically chooses from a random subset of unlocked Powers.
+The player chooses from a random subset of unlocked Powers when designated **World Progress milestones** are reached.
+
+EXP does not grant Power choices.
 
 Working baseline:
 
@@ -487,7 +489,7 @@ The player should **not** begin with the full prototype Power library.
 
 ### Starting PowerDex
 
-At account start, only three reference-equivalent Powers are available:
+At account start, only three reference-equivalent Powers are eligible for the first Power choice:
 
 - **Strength starter** — reference equivalent of Super Strength: Strength ×10.
 - **Speed starter** — reference equivalent of Super Speed: Agility ×10.
@@ -501,7 +503,7 @@ Their purpose is to teach the relationship between the four primary combat attri
 
 Deliberate deviation from the reference:
 
-**The first choice shows all three starting Powers and the player chooses 1 of 3.**
+**After the first progression milestone, the first choice shows all three starting Powers and the player chooses 1 of 3.**
 
 Idle Superpowers begins with the same three Powers in the eligible starter pool but initially shows only one offered option.
 
