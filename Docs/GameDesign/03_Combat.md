@@ -1,6 +1,6 @@
 # 03 — Combat
 
-**Status:** Draft v0.3  
+**Status:** Draft v0.4  
 **Date:** 2026-09-28
 
 ## Combat philosophy
@@ -440,7 +440,8 @@ A clear distinction exists between persistent run state and temporary combat sta
 
 Examples:
 
-- Run Level;
+- current unspent EXP;
+- EXP-purchased primary-stat upgrades;
 - Powers;
 - gear;
 - permanent effects granted by current Powers.
