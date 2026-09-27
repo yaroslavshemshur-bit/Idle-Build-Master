@@ -1,6 +1,6 @@
 # 02 — Run & Progression Structure
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-28
 
 ## Purpose of a run
@@ -63,6 +63,135 @@ After a reset:
 - defeating those bosses reopens progression toward the previous frontier.
 
 This keeps repeated progression meaningful without forcing the player to restart from the absolute beginning forever.
+
+## Location and Stage structure
+
+World progression is organized hierarchically:
+
+**World → Location → Stage → Encounter**
+
+A normal Location uses the following first implementation baseline:
+
+- 10 normal Stages;
+- each Stage requires a number of completed encounters;
+- after the final normal Stage comes the Location Boss;
+- the system must support a different number of Stages or encounters through data rather than hard-coded constants.
+
+The first implementation uses 10 Stages because it provides a readable progression rhythm, not because every future Location must use exactly 10.
+
+### Encounter progress inside a Stage
+
+Stage progression counts **completed encounters**, not individual enemies killed.
+
+This keeps progression comparable between:
+
+- a single durable enemy;
+- a group of three enemies;
+- a six-enemy swarm.
+
+A six-enemy encounter therefore counts as one completed encounter unless a special rule says otherwise.
+
+### Auto Push
+
+The player can control whether completed Stage progress automatically advances forward.
+
+**Auto Push ON**
+
+- when the required encounter count is reached, move to the next Stage automatically;
+- after the final Stage, attempt the Location Boss when available.
+
+**Auto Push OFF**
+
+- remain on the current Stage after its progression requirement is completed;
+- continue farming that Stage indefinitely.
+
+Any currently accessible Stage can be selected manually for farming.
+
+This Push/Farm switch is part of the core loop rather than a later quality-of-life feature.
+
+## Stage Compression
+
+Repeated traversal of old Locations becomes faster through permanent progression.
+
+The reference inspiration is Idle Superpowers' Sublevel progression.
+
+Each Stage has:
+
+```
+RequiredEncounters = max(1, BaseRequiredEncounters - PermanentEncounterReduction)
+```
+
+First implementation baseline:
+
+```
+BaseRequiredEncounters = 10
+PermanentEncounterReduction = 0..9
+```
+
+Result:
+
+```
+10 → 9 → 8 → ... → 1 required encounter per Stage
+```
+
+The exact permanent-upgrade source and unlock timing are deferred to Prestige / permanent progression design.
+
+### What Stage Compression does not skip
+
+Stage Compression never automatically skips the Location Boss.
+
+If a Location must be re-cleared in the current run, its Boss must still be defeated.
+
+This preserves the Boss as the benchmark for the current build while making familiar traversal dramatically faster over time.
+
+### Farming after Stage completion
+
+Completing the required encounter count only unlocks progression.
+
+It does not disable the Stage.
+
+The player can keep farming the same Stage indefinitely with Auto Push disabled.
+
+This means Stage Compression accelerates **required traversal** without reducing farm access.
+
+## Overkill as a separate future accelerator
+
+Overkill-style progression is a compatible future system inspired by the reference, where excess damage can carry progression through additional enemies / encounters.
+
+It should remain separate from Stage Compression.
+
+The two systems solve different problems:
+
+- **Stage Compression** reduces how many encounters are required.
+- **Overkill-style progression** rewards extreme combat power by clearing routine content faster.
+
+Overkill is not required for the first Location implementation but should not be blocked architecturally.
+
+## World position vs Run Level
+
+These are separate coordinates.
+
+Example:
+
+```
+World Position: Location 2 / Stage 7
+Run Level: 43
+```
+
+World Position determines:
+
+- what content is accessible;
+- enemy difficulty;
+- available drops;
+- current push frontier.
+
+Run Level determines:
+
+- temporary run stat growth;
+- Power-choice progression;
+- current run build development.
+
+They must not be collapsed into one progression number.
 
 ## Reset start point
 
@@ -247,7 +376,16 @@ Possible structure:
 - Power levels → Choose 1 of 3 Powers.
 - Milestone levels → access to stronger Power tiers or special choices.
 
-Exact cadence is a balance question.
+For the first Location, the Power cadence should start from the Idle Superpowers reference pacing.
+
+Current first-Location target:
+
+- the first starter Power is obtained almost immediately;
+- the player has enough time to understand the first Power before the next major choice;
+- the second Power arrives near the later part of the Location / around the approach to the Boss;
+- completing the first Location is expected to place the run roughly around Run Level 30–35.
+
+This is a **pacing baseline**, not a locked final curve.
 
 ## Powers come from multiple sources
 
@@ -570,17 +708,23 @@ The following are currently considered design decisions rather than hypotheses:
 12. Extremely difficult walls and diminishing returns, not timers or formal defeat states, encourage reset.
 13. Starting-build control exists but does not guarantee the full build.
 14. Enemy/location theming will be chosen after mechanics are defined.
+15. A normal Location baseline is 10 Stages followed by a Location Boss.
+16. Stage progress counts encounters rather than individual enemy kills.
+17. Auto Push ON advances automatically; Auto Push OFF keeps farming the current Stage.
+18. Stage Compression permanently reduces required encounters per Stage from a baseline of 10 toward a minimum of 1.
+19. Stage Compression never skips a required Location Boss.
+20. World Position and Run Level are separate progression coordinates.
 
 ## Open questions for later sections
 
 1. Exact reset reward structure.
 2. Exact rule for advancing the reset start point.
 3. Whether the progression skip is a quest, perk, milestone or combination.
-4. Initial number of protected gear slots.
-5. Gear slot and affix system.
-6. Exact Run Level curve.
-7. Power choice cadence.
-8. Power rarity / tier structure.
-9. Starting-foundation implementation.
-10. Offline Run XP behavior.
-11. First-region mechanical teaching sequence.
+4. Exact protected-gear progression after reset.
+5. Exact Run Level curve.
+6. Final Power-choice cadence after first-Location tuning.
+7. Starting-foundation implementation.
+8. Offline Run XP behavior.
+9. Exact first-Location encounter composition and teaching sequence.
+10. Exact source / cost of Stage Compression progression.
+11. Whether Overkill-style progression is a Power, permanent upgrade, or both.
