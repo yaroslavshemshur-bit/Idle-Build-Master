@@ -214,13 +214,17 @@ Current direction:
 
 When the player dies:
 
-- the current encounter fails;
-- the player can retry;
-- rebuild;
-- farm elsewhere;
-- or voluntarily reset.
+- the current encounter remains active;
+- enemy HP is preserved;
+- temporary combat buffs and stacks are cleared according to Combat rules;
+- the hero recovers and revives;
+- combat continues.
 
-Death is information about the build, not a session-ending punishment.
+There is no universal defeat state.
+
+The player decides when continued progression is too inefficient and whether to keep chipping the current enemy, farm elsewhere, change the build, or reset voluntarily.
+
+Death is information about the build and a loss of combat momentum, not a session-ending punishment.
 
 ## Run Level
 
@@ -563,7 +567,7 @@ The following are currently considered design decisions rather than hypotheses:
 9. XP grants Powers.
 10. Key progression events also grant meaningful rewards and can sometimes grant Powers.
 11. A player may remain in one run indefinitely.
-12. Extremely difficult walls and diminishing returns, not timers, encourage reset.
+12. Extremely difficult walls and diminishing returns, not timers or formal defeat states, encourage reset.
 13. Starting-build control exists but does not guarantee the full build.
 14. Enemy/location theming will be chosen after mechanics are defined.
 
