@@ -32,11 +32,11 @@ Planned next:
 ### Content
 
 - [Powers](Content/Powers.md)
+- [Location 01 — Mechanical & Balance Baseline](Content/Location_01_Mechanical_Baseline.md)
 
 Planned next:
 
 - Enemies
-- Locations
 - Items
 
 ### Economy
