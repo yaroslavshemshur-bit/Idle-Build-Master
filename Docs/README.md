@@ -41,9 +41,10 @@ Planned next:
 
 ### Economy
 
-Will be added after the main progression systems are defined:
+- [00 — Reference Economy Baseline](Economy/00_Reference_Economy_Baseline.md)
 
-- Economy
+Planned next:
+
 - Balance Principles
 
 ### Production
