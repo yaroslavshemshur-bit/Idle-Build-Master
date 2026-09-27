@@ -19,10 +19,10 @@ Source of truth for game design and production decisions.
 - [00 — Game Vision](GameDesign/00_Game_Vision.md)
 - [01 — Core Loop](GameDesign/01_Core_Loop.md)
 - [02 — Run & Progression Structure](GameDesign/02_Run_Progression.md)
+- [03 — Combat](GameDesign/03_Combat.md)
 
 Planned next:
 
-- 03 — Combat
 - 04 — Powers & Build Archetypes
 - 05 — Collections
 - 06 — World & Locations
