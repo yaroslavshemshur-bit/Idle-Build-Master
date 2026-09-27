@@ -1,6 +1,6 @@
 # 00 — Reference Economy Baseline
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -251,11 +251,11 @@ Again: **this validates internal consistency, not historical accuracy.**
 
 ---
 
-# Calibration Hypothesis C — enemy growth
+# Calibration Baseline C — enemy growth
 
 ## Status
 
-**Project formula, already approved for first testing. It is not claimed as the Idle Superpowers enemy formula.**
+**Approved first-implementation calibration formula. It is not claimed as the hidden Idle Superpowers enemy formula.**
 
 Public reference data does not expose a reliable early enemy-stat generation formula.
 
@@ -285,6 +285,69 @@ Relative budget:
 | 70 | 23.99× |
 
 The first Location therefore spans roughly a **24× baseline enemy-budget range** before the Boss mechanic.
+
+## First-Location primary-stat baseline
+
+The approved first-Location baseline anchors a balanced ordinary enemy near the player's balanced pre-Power primary-stat scale at the end of the Location.
+
+Hero starts each fresh run at:
+
+```
+STR = VIT = AGI = DEX = 1
+```
+
+For a balanced ordinary enemy, define:
+
+```
+P(L) = 4.306533075 × (10^((L - 1) / 50) - 1)
+```
+
+where `L` is the reference-equivalent progression level.
+
+This coefficient is chosen so that:
+
+```
+P(70) = 99
+```
+
+which approximately matches the balanced player's ~98 purchased upgrades per primary stat plus the starting value of 1 under the current EXP/stat-cost reconstruction.
+
+Stage-end values:
+
+| Stage | Equivalent level | P(L) |
+|---:|---:|---:|
+| 1 | 7.9 | 1.61 |
+| 2 | 14.8 | 3.82 |
+| 3 | 21.7 | 6.87 |
+| 4 | 28.6 | 11.04 |
+| 5 | 35.5 | 16.79 |
+| 6 | 42.4 | 24.68 |
+| 7 | 49.3 | 35.52 |
+| 8 | 56.2 | 50.41 |
+| 9 | 63.1 | 70.88 |
+| 10 | 70.0 | 99.00 |
+
+### Enemy archetype multipliers
+
+Apply role multipliers to `P(L)` before multi-enemy normalization:
+
+| Archetype | STR | VIT | AGI | DEX |
+|---|---:|---:|---:|---:|
+| Basic | ×1.00 | ×1.00 | ×1.00 | ×1.00 |
+| Fast | ×0.55 | ×0.65 | ×1.80 | ×1.00 |
+| Armored | ×1.25 | ×1.75 | ×0.35 | ×0.65 |
+| Swarm | ×0.65 | ×0.65 | ×1.55 | ×1.15 |
+
+For multi-enemy encounters, the approved first baseline is:
+
+```
+FinalEnemyPrimaryStat =
+P(L)
+× ArchetypeMultiplier
+/ sqrt(EnemyCount)
+```
+
+An Elite multiplier is applied after the archetype multiplier where explicitly defined by content.
 
 ## Budget is not one stat
 
@@ -327,7 +390,39 @@ GroupBudget(N) = SingleEnemyBudget × sqrt(N)
 Examples:
 
 | Enemies | Per-enemy budget | Total group budget |
-|---:|---:|---:|
+|## Encounter-owned EXP budget
+
+EXP reward is owned by the **encounter**, not multiplied by the number of visible enemies.
+
+For an encounter with total EXP budget `B`:
+
+```
+sum(all enemy EXP rewards) = B
+```
+
+If rewards are evenly split among `N` initial enemies:
+
+```
+EXP per enemy = B / N
+```
+
+Example:
+
+```
+Encounter EXP Budget = 20,000
+1 enemy  → 20,000
+5 enemies → 4,000 each
+```
+
+This prevents a six-enemy encounter from becoming an automatic ×6 EXP farm solely because it contains six targets.
+
+High-count encounters can still become efficient farming targets when the player's build clears them faster.
+
+Summoned or replacement enemies do not create EXP beyond the encounter's assigned budget unless a content rule explicitly allocates additional reward.
+
+This is a locked first-implementation rule.
+
+---:|---:|---:|
 | 1 | 1.000× | 1.000× |
 | 2 | 0.707× | 1.414× |
 | 3 | 0.577× | 1.732× |
@@ -349,6 +444,11 @@ Because enemies attack independently, reactive Powers still gain extra trigger f
 - Progress milestones give Power / system unlocks independently of EXP spending.
 - Progress EXP multipliers are multiplicative.
 - First Location maps reference levels 1–70 to its 100 required encounters.
+- Fresh-run starting primary stats are 1/1/1/1.
+- First-Location enemy primary-stat baseline uses P(L) anchored to P(70)=99.
+- Basic/Fast/Armored/Swarm archetype coefficients above are the first implementation baseline.
+- Multi-enemy primary stats are normalized by 1/sqrt(N).
+- EXP reward belongs to the encounter and is divided across enemies rather than multiplied by enemy count.
 - Gear starts around normalized reference level 10.
 - Power unlocks / choices follow the agreed early reference cadence.
 
@@ -356,10 +456,10 @@ Because enemies attack independently, reactive Powers still gain extra trigger f
 
 - exact EXP per enemy;
 - exact cost of the Nth stat purchase;
-- exact enemy-budget growth rate;
-- distribution of enemy budget into STR / VIT / AGI / DEX;
-- multi-enemy normalization exponent;
-- boss numeric multipliers.
+- exact long-term enemy-budget growth after the first Location;
+- future archetype coefficient tuning;
+- future multi-enemy normalization tuning;
+- later Boss numeric multipliers.
 
 These should be tuned only after the first Location has concrete enemies, gear drops and the Fortify → Break → Exposed Boss.
 
