@@ -1,6 +1,6 @@
 # 02 — Run & Progression Structure
 
-**Status:** Draft v0.3  
+**Status:** Draft v0.4  
 **Date:** 2026-09-28
 
 ## Purpose of a run
@@ -42,7 +42,8 @@ Collections are a foundational permanent progression system.
 
 The following reset:
 
-- Run Level
+- Current EXP
+- STR / VIT / AGI / DEX upgrades purchased with EXP
 - Current Powers
 - Temporary run modifiers
 - Temporary build synergies
@@ -167,31 +168,41 @@ The two systems solve different problems:
 
 Overkill is not required for the first Location implementation but should not be blocked architecturally.
 
-## World position vs Run Level
+## World Progress vs EXP
 
-These are separate coordinates.
+World Progress and EXP are separate systems.
 
 Example:
 
 ```
 World Position: Location 2 / Stage 7
-Run Level: 43
+Current EXP: 12,450
+Purchased stat upgrades: STR 18 / VIT 9 / AGI 14 / DEX 11
 ```
 
-World Position determines:
+World Progress determines:
 
 - what content is accessible;
 - enemy difficulty;
 - available drops;
+- Power-choice milestones;
+- permanent Progress unlock milestones;
 - current push frontier.
 
-Run Level determines:
+EXP determines temporary run stat growth.
 
-- temporary run stat growth;
-- Power-choice progression;
-- current run build development.
+Enemies grant EXP.
 
-They must not be collapsed into one progression number.
+The player manually spends EXP on:
+
+- Strength;
+- Vitality;
+- Agility;
+- Dexterity.
+
+Spending EXP does **not** advance World Progress and does **not** directly grant Powers.
+
+This follows the Idle Superpowers model rather than using a separate XP-driven Run Level.
 
 ## Reset start point
 
@@ -252,7 +263,8 @@ Later start points prevent this from becoming endless repetitive busywork.
 
 Immediately after reset:
 
-- Run Level is low.
+- Current EXP has reset.
+- STR / VIT / AGI / DEX upgrades purchased with EXP have reset.
 - Current Powers are mostly gone.
 - Most gear has been lost unless protected by the gear-retention system.
 - The player begins from the current reset start point.
@@ -355,45 +367,73 @@ The player decides when continued progression is too inefficient and whether to 
 
 Death is information about the build and a loss of combat momentum, not a session-ending punishment.
 
-## Run Level
+## EXP and stat upgrades
 
-Each run has a temporary **Run Level**.
+EXP is a temporary run resource.
 
-Enemies provide XP.
+Enemies grant EXP according to their reward values and current EXP multipliers.
 
-Run Level is one of the main predictable sources of Power acquisition.
+The player spends EXP manually on the four primary attributes:
 
-Its purposes:
+- Strength;
+- Vitality;
+- Agility;
+- Dexterity.
 
-1. Pace the formation of the build.
-2. Reward farming and progression.
-3. Create a temporary power curve within each run.
-4. Make XP efficiency and location choice meaningful.
+These purchases are one of the main active progression decisions inside a run.
 
-Possible structure:
+The player can deliberately farm a Stage with Auto Push disabled to gain more EXP before attempting harder World Progress.
 
-- Minor levels → small automatic stat growth.
-- Power levels → Choose 1 of 3 Powers.
-- Milestone levels → access to stronger Power tiers or special choices.
+On reset:
 
-For the first Location, the Power cadence should start from the Idle Superpowers reference pacing.
+- unspent EXP resets;
+- EXP-purchased STR / VIT / AGI / DEX upgrades reset;
+- Powers reset according to the normal reset rules.
 
-Current first-Location target:
+A Power such as `EXP Multi ×5` multiplies EXP income. It does not directly move World Progress or Power milestones.
 
-- the first starter Power is obtained almost immediately;
-- the player has enough time to understand the first Power before the next major choice;
-- the second Power arrives near the later part of the Location / around the approach to the Boss;
-- completing the first Location is expected to place the run roughly around Run Level 30–35.
+## First-Location reference cadence
 
-This is a **pacing baseline**, not a locked final curve.
+The first Location is normalized to the Idle Superpowers original-timeline progression from reference levels 1–70.
+
+Baseline:
+
+```
+10 Stages × 10 required encounters = 100 required encounters
+```
+
+Reference milestone mapping:
+
+```
+FirstRunEncounterMilestone(L) = ceil(100 × L / 70)
+```
+
+where `L` is the equivalent reference level.
+
+| Reference equivalent | First-run cumulative encounter | Purpose |
+|---:|---:|---|
+| 1 | 2 | first Power choice |
+| 10 | 15 | gear drops begin / gear loop introduced |
+| 20 | 29 | Progress unlock: Stormbrand analogue |
+| 30 | 43 | Progress unlock + special first-run Power choice |
+| 40 | 58 | next Progress Power unlock |
+| 50 | 72 | Progress unlock + normal Power choice |
+| 60 | 86 | next Progress Power unlock |
+| 70 | 100 | final first-Location Progress unlock + Location Boss |
+
+These encounter numbers are a first-run calibration table, not a separate leveling system.
+
+The authoritative trigger is normalized World Progress through the Location. When Stage Compression lowers required encounters, the player reaches the same World Progress milestones with fewer actual fights, matching the purpose of the reference Sublevel upgrade.
 
 ## Powers come from multiple sources
 
 Powers are **not only XP rewards**.
 
-### Regular source: Run Level
+### Regular source: World Progress milestones
 
-XP produces recurring Power choices and is the backbone of build formation.
+Power choices occur when designated progression milestones are reached.
+
+They are not purchased with EXP and are not triggered by accumulated EXP.
 
 ### Event source: key progression events
 
@@ -695,14 +735,14 @@ Offline should never automatically construct the player's build.
 The following are currently considered design decisions rather than hypotheses:
 
 1. Reset is voluntary.
-2. Run Level resets.
+2. Current EXP and EXP-purchased primary-stat upgrades reset.
 3. Powers reset.
 4. Collections persist.
 5. Most gear initially resets.
 6. Permanent progression can increase how much gear survives reset.
 7. Location bosses must be re-cleared after reset from the run's current start point onward.
 8. Higher reset progression allows later start points and/or progression skipping.
-9. XP grants Powers.
+9. Power choices are tied to World Progress milestones; EXP is spent on STR / VIT / AGI / DEX.
 10. Key progression events also grant meaningful rewards and can sometimes grant Powers.
 11. A player may remain in one run indefinitely.
 12. Extremely difficult walls and diminishing returns, not timers or formal defeat states, encourage reset.
@@ -713,7 +753,7 @@ The following are currently considered design decisions rather than hypotheses:
 17. Auto Push ON advances automatically; Auto Push OFF keeps farming the current Stage.
 18. Stage Compression permanently reduces required encounters per Stage from a baseline of 10 toward a minimum of 1.
 19. Stage Compression never skips a required Location Boss.
-20. World Position and Run Level are separate progression coordinates.
+20. World Progress and EXP are separate systems; there is no XP-driven Run Level.
 
 ## Open questions for later sections
 
@@ -721,10 +761,10 @@ The following are currently considered design decisions rather than hypotheses:
 2. Exact rule for advancing the reset start point.
 3. Whether the progression skip is a quest, perk, milestone or combination.
 4. Exact protected-gear progression after reset.
-5. Exact Run Level curve.
-6. Final Power-choice cadence after first-Location tuning.
+5. Exact EXP income and primary-stat upgrade cost curves.
+6. Final Power-choice cadence beyond the reference-first early-game baseline.
 7. Starting-foundation implementation.
-8. Offline Run XP behavior.
+8. Offline EXP behavior.
 9. Exact first-Location encounter composition and teaching sequence.
 10. Exact source / cost of Stage Compression progression.
 11. Whether Overkill-style progression is a Power, permanent upgrade, or both.
