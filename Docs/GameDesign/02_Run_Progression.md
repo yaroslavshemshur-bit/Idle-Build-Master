@@ -1,680 +1,582 @@
 # 02 — Run & Progression Structure
 
-**Status:** Draft v0.1  
-**Date:** 2026-09-27
+**Status:** Draft v0.2  
+**Date:** 2026-09-28
 
 ## Purpose of a run
 
-A run is **not** a replay of the entire world from the beginning.
+A run is a temporary build and progression attempt through a world the account has already discovered.
 
-A run is the temporary build state of the hero layered on top of persistent world progress.
-
-The world remembers what the player has discovered. The run determines **how the player is currently capable of fighting through that world**.
-
-This distinction is important:
-
-- World progression should feel permanent.
-- Build progression should be resettable.
-- Old locations should remain useful.
-- Resetting should create a new planning problem, not force the player through repeated onboarding.
-
-## Core model
-
-The game has two major progression layers.
-
-### Persistent account / world layer
-
-Expected to survive a reset:
-
-- Unlocked regions and locations
-- Highest world progression reached
-- Collections
-- Gear inventory
-- Equipped gear
-- Permanent system unlocks
-- Achievements
-- Mastery
-- Challenge completion
-- Future prestige / memory progression
-
-### Temporary run layer
-
-Expected to reset:
-
-- Hero run level
-- Current Powers
-- Temporary run-specific modifiers
-- Temporary build synergies created by Powers
-- Any future run-only bonuses
-
-Exact currencies are intentionally not defined yet.
-
-## The run fantasy
-
-At the start of a new run, the player should not feel:
-
-> “I lost everything and need to replay the tutorial.”
+Resetting should matter. The player is pushed back and must again clear location bosses to return to the frontier, but permanent progression increasingly shortens this repeated climb.
 
 The intended feeling is:
 
-> “I have my account progression, gear and unlocked world. Now I need to rebuild a temporary combat engine and decide how I want this run to develop.”
+> “I am rebuilding a new character through familiar content, but my account knowledge and permanent progression let me do it faster and more intelligently than before.”
 
-The first strategic question after a reset is therefore:
+A reset should therefore create three things:
 
-**Where should I rebuild my power?**
+1. A new build attempt.
+2. A new routing / farming problem.
+3. A faster return toward the previous frontier.
 
-Possible answers:
+## Two progression layers
 
-- A safe old location for fast XP
-- A location with a Collection milestone the player wants
-- A location that drops a desired item
-- A harder location with better rewards but higher risk
-- The current frontier if the account is already strong enough
+### Persistent account layer
+
+The following survive reset:
+
+- Collections
+- Permanent system unlocks
+- Highest world progress ever reached
+- Discovered locations and world knowledge
+- Achievements
+- Mastery
+- Challenge completion
+- Reset / prestige progression
+- Gear-retention upgrades
+- Starting-build options unlocked by permanent progression
+
+Collections are a foundational permanent progression system.
+
+### Temporary run layer
+
+The following reset:
+
+- Run Level
+- Current Powers
+- Temporary run modifiers
+- Temporary build synergies
+- Current run boss-clear state
+- Most gear, especially early in the game
+
+Gear has its own retention system and is described separately below.
+
+## World state after reset
+
+World discovery is persistent, but **run progression through the world is not fully persistent**.
+
+After a reset:
+
+- the player is pushed back to a start point;
+- locations before that start point are treated as already skipped / cleared for this run;
+- from the current start point onward, the player must defeat location bosses again;
+- defeating those bosses reopens progression toward the previous frontier.
+
+This keeps repeated progression meaningful without forcing the player to restart from the absolute beginning forever.
+
+## Reset start point
+
+The reset start point should improve as permanent reset progression increases.
+
+Core rule:
+
+**A stronger / later reset should allow the next run to begin farther into the world.**
+
+The exact implementation is intentionally not locked yet.
+
+Two compatible tools can be used:
+
+### 1. Automatic start-range progression
+
+Higher prestige / reset progression moves the minimum start point forward.
+
+Example concept:
+
+- Early resets begin near the start of the world.
+- Later resets skip the earliest region.
+- Much later resets begin several regions deeper.
+
+Exact thresholds are balance questions.
+
+### 2. Optional progression skip
+
+Inspired by Idle Superpowers, the player may gain access to a quest, requirement or other mechanic that allows already-understood early progression to be skipped.
+
+The important property is **agency**:
+
+- the player can skip repetitive progression when qualified;
+- the player may still choose to play older content when it is useful for farming, XP, Collections or gear.
+
+The final system may use one or both approaches.
+
+## Why bosses are re-cleared
+
+Each location boss acts as a checkpoint test for the current build.
+
+Re-clearing bosses after reset provides:
+
+- a reason for the new build to exist;
+- repeated moments of progression feedback;
+- a benchmark against earlier runs;
+- a natural way to feel permanent power growth;
+- structure between farming and pushing.
+
+The same boss should become easier across account progression, allowing the player to feel:
+
+> “This used to be a wall. Now I erase it.”
+
+Later start points prevent this from becoming endless repetitive busywork.
 
 ## Run phases
-
-A healthy run is expected to move through four phases.
 
 ### Phase 1 — Rebuild
 
 Immediately after reset:
 
 - Run Level is low.
-- The hero has only the chosen starting foundation.
-- Previously unlocked locations remain available.
-- The player chooses where to rebuild.
+- Current Powers are mostly gone.
+- Most gear has been lost unless protected by the gear-retention system.
+- The player begins from the current reset start point.
+- A small deterministic starting-build foundation may already exist.
 
-The purpose of this phase is to regain enough temporary power to form a recognizable build.
+The player rebuilds temporary strength.
 
-This phase should become faster as permanent progression improves.
+### Phase 2 — Re-clear
 
-### Phase 2 — Push
+The player progresses through previously discovered locations again.
 
-The player returns to the current frontier and attempts to progress.
+Each required location boss must be defeated for this run.
 
-The build is tested against:
+This phase should become dramatically faster over time due to:
 
-- tougher enemies;
-- new enemy mechanics;
-- encounter composition;
-- elite enemies;
-- bosses.
+- permanent progression;
+- better Collections;
+- retained gear;
+- better starting-build control;
+- later reset start points;
+- player knowledge.
 
-If the build succeeds, permanent world progress advances.
+### Phase 3 — Frontier Push
 
-### Phase 3 — Targeted Farm / Rebuild
+The player reaches the previous frontier and attempts new progression.
 
-When the player hits a wall, the game should expose several possible responses.
+This is where current build quality is tested most strongly.
 
-The player may:
+### Phase 4 — Targeted Farm / Adapt
 
-- farm a Collection;
-- search for a specific gear drop;
-- gain additional run levels;
-- change equipped gear;
-- change farming location;
-- pursue a mastery milestone;
-- continue the run and adapt future Power choices.
+When a wall appears, the player can:
 
-The player is not forced to immediately reset.
+- farm Collections;
+- hunt gear;
+- gain more Run Levels;
+- seek additional Powers;
+- change equipment;
+- pursue another permanent objective;
+- continue adapting the current build.
 
-A weak push run can become a productive farming run.
+The player is not forced to reset after failing to push.
 
-### Phase 4 — Reset Decision
+### Phase 5 — Voluntary Reset
 
-Eventually the player decides the current run has reached diminishing returns.
+Reset can be used whenever the player wants to:
 
-Typical reasons:
-
-- the Power combination is poor for the current wall;
-- important synergy pieces did not appear;
-- the player wants to try a different build direction;
-- persistent farming goals have been completed;
-- the next reset can start from a stronger strategic foundation.
+- accelerate future progression;
+- attempt a different build;
+- escape poor build RNG;
+- convert accumulated progress into reset value;
+- try a better route.
 
 Reset is voluntary.
 
-Death is **not** the reset trigger.
+There is no hard run timer.
 
-## Death
+## Infinite farming is allowed
 
-Death should have low punishment.
-
-Current proposal:
-
-- No lives.
-- No energy.
-- No loss of gear.
-- No loss of persistent progress.
-- No forced reset.
-
-When the hero dies during push, the current encounter fails.
-
-The player can then:
-
-- retry;
-- change gear;
-- return to a cleared farming location;
-- continue gaining persistent resources;
-- reset voluntarily.
-
-Death communicates:
-
-**“Your current setup cannot solve this encounter yet.”**
-
-It should not communicate:
-
-**“You lost your session.”**
-
-## World progression vs run progression
-
-### World progression
-
-World progression is the permanent frontier.
-
-Defeating important milestones permanently unlocks:
-
-- new locations;
-- new enemy families;
-- new Collections;
-- new drops;
-- new systems;
-- new challenges.
-
-World progression should generally not be reset.
-
-### Run progression
-
-Run progression is temporary combat development.
-
-Its main purpose is to produce Power choices and build evolution.
-
-The player repeatedly rebuilds run progression in different ways while pushing the permanent world frontier.
-
-## Run Level
-
-The current proposal is to use a simple **Run Level**.
-
-Enemies grant run XP during active play.
-
-Run Level has two jobs:
-
-1. Provide predictable temporary power growth.
-2. Trigger Power choices.
-
-Not every level needs a major decision.
-
-A possible structure:
-
-- Minor levels: small automatic base-stat growth.
-- Power levels: Choose 1 of 3 Powers.
-- Milestone levels: access to stronger / rarer Power tiers.
-
-Exact cadence and numbers are balance questions and remain TBD.
-
-## Why Run Level exists
-
-Run Level solves several problems at once.
-
-It gives the player:
-
-- a reason to farm old locations after reset;
-- a visible sense of run development;
-- a pacing mechanism for Power choices;
-- a way to compare safe farming vs dangerous high-XP farming;
-- a natural build curve from weak → functional → specialized.
-
-It also creates route optimization.
-
-A player may ask:
-
-> “Do I farm safe enemies quickly, or move to a dangerous location that gives much better XP?”
-
-That decision can later become part of mastery and optimization.
-
-## Power acquisition
-
-At Power milestones, the player receives a random selection.
-
-Baseline proposal:
-
-**Choose 1 of 3 Powers.**
-
-The offered pool depends on:
-
-- Powers permanently unlocked on the account;
-- current Power tier;
-- future build-affinity systems;
-- current run state;
-- exclusions / prerequisites where necessary.
-
-The system should avoid offering only meaningless options, but should not guarantee the perfect build.
-
-## Starting foundation
-
-A reset should include a small amount of deterministic control.
-
-Working concept:
-
-Before starting a run, the player chooses a limited **starting foundation** from permanently unlocked options.
-
-Possible forms:
-
-- one starting Power;
-- one Trait;
-- one remembered Power;
-- one build Affinity.
-
-The exact presentation is not locked yet.
-
-The purpose is:
-
-> “I want to attempt a Crit / Bleed run.”
-
-not:
-
-> “The game randomly decided what I am allowed to play.”
-
-However, the starting foundation should not guarantee the complete build.
-
-Random Power choices must still be capable of redirecting the run.
-
-## Controlled randomness
-
-The target relationship is:
-
-**Player intention + random opportunity + adaptation**
-
-Example:
-
-The player starts with a Crit-oriented foundation.
-
-Later choices can lead toward:
-
-- Crit + Bleed
-- Crit + Attack Speed
-- Crit + Execute
-- Crit + AoE
-- a hybrid the player did not originally plan
-
-Sometimes the ideal support Power does not appear.
+The player may theoretically stay in one run indefinitely.
 
 This is intentional.
 
-The player then decides whether to:
+The game should not force reset through:
 
-- adapt;
-- keep pushing;
-- turn the run into farming;
-- reset after completing useful goals.
+- energy;
+- run expiration;
+- mandatory death reset;
+- hard timers.
 
-## Bad RNG protection
+Instead, the current run should eventually encounter **extremely difficult progression walls** and diminishing push efficiency.
 
-Bad RNG should reduce push efficiency, not erase progress.
+At that point, reset becomes attractive because it improves the next attempt.
 
-A run with weak synergy can still produce:
+The desired thought is:
 
-- permanent gear;
-- Collection progress;
-- achievements;
-- mastery progress;
-- persistent resources;
-- useful farming time.
+> “I could keep farming here, but resetting now will make the next push much stronger / faster.”
 
-This creates an important state:
+## Death
 
-**Failed push run → successful farm run**
-
-No run needs to become completely worthless.
-
-## Gear and runs
+Death should remain low-punishment.
 
 Current direction:
 
-**Gear is persistent.**
+- No lives.
+- No energy.
+- No forced reset.
+- No loss of Collections or other permanent account progress.
 
-Gear does not disappear on reset.
+When the player dies:
 
-Reasons:
+- the current encounter fails;
+- the player can retry;
+- rebuild;
+- farm elsewhere;
+- or voluntarily reset.
 
-- rare drops retain long-term excitement;
-- farming has permanent value;
-- gear gives the player a stable baseline between runs;
-- Powers can interact with persistent equipment to create different run identities.
+Death is information about the build, not a session-ending punishment.
 
-The exact itemization system is deferred to the Gear section.
+## Run Level
 
-Important constraint:
+Each run has a temporary **Run Level**.
 
-Gear should support build decisions rather than replace Power buildcraft.
+Enemies provide XP.
 
-A single high-stat item should not automatically be better for every build.
+Run Level is one of the main predictable sources of Power acquisition.
 
-## Location selection
+Its purposes:
 
-The player chooses a location from the global map.
+1. Pace the formation of the build.
+2. Reward farming and progression.
+3. Create a temporary power curve within each run.
+4. Make XP efficiency and location choice meaningful.
 
-Each unlocked location has at least two conceptual purposes:
+Possible structure:
 
-### Push value
+- Minor levels → small automatic stat growth.
+- Power levels → Choose 1 of 3 Powers.
+- Milestone levels → access to stronger Power tiers or special choices.
 
-Can this location advance the permanent frontier?
+Exact cadence is a balance question.
 
-### Farm value
+## Powers come from multiple sources
 
-What useful persistent progress does this location provide?
+Powers are **not only XP rewards**.
+
+### Regular source: Run Level
+
+XP produces recurring Power choices and is the backbone of build formation.
+
+### Event source: key progression events
+
+Important events can also provide rewards, including sometimes Powers.
+
+Examples of key events:
+
+- defeating a location boss;
+- defeating a major boss;
+- reaching a world milestone;
+- completing a challenge;
+- completing an important Collection milestone;
+- completing a special quest.
+
+The reward does not always need to be a Power.
+
+Possible rewards include:
+
+- a Power choice;
+- a reroll;
+- a temporary modifier;
+- gear;
+- a permanent unlock;
+- a Collection-related unlock;
+- access to a new system.
+
+This prevents the game from reducing all meaningful progression to XP alone.
+
+## Starting-build control
+
+The player should have a limited deterministic foundation after reset.
+
+The goal is similar to Idle Superpowers:
+
+> The player can intentionally lean toward a desired build, but cannot fully guarantee it.
+
+Working model:
+
+- permanent progression unlocks starting options;
+- the player selects a small starting foundation;
+- the remaining build emerges through random Power choices.
+
+Example intention:
+
+**“I want to build around Bleed.”**
+
+Possible outcomes:
+
+- Bleed + Crit
+- Bleed + Attack Speed
+- Bleed + AoE
+- an unexpected hybrid
+- a weak combination that the player decides not to push with
+
+Exact starting-foundation mechanics will be defined in the Powers / Prestige documents.
+
+## Controlled randomness
+
+The target is:
+
+**Player intention + random opportunities + adaptation**
+
+RNG should be capable of ruining the *ideal* build.
+
+It should not ruin the *value of the run*.
+
+If the desired synergy does not appear, the player can:
+
+- adapt;
+- use the run for farming;
+- complete Collections;
+- hunt gear;
+- gain account progress;
+- reset when convenient.
+
+## Bad run → farming run
+
+This is a core rule.
+
+A run that is poor for pushing should still have economic and progression value.
+
+The player can decide:
+
+> “This build will not beat the frontier boss, but it is good enough to farm this location for the next Collection milestone.”
+
+This is one of the main bridges between run-based buildcraft and persistent SkyBlock-like progression.
+
+## Gear and reset
+
+Gear is **not fully persistent by default**.
+
+Early in progression, gear is expected to reset with the run.
+
+Permanent progression later unlocks the ability to preserve increasing amounts of gear across resets.
+
+Working concept:
+
+**Gear Retention / Protected Gear Slots**
+
+- Early game: little or no gear survives reset.
+- Later progression: the player can protect a limited number of items.
+- Further progression: more items can be retained.
+
+This creates another strategic reset decision:
+
+**Which pieces are important enough to carry into the next run?**
+
+The exact system name, number of retained items and unlock curve are TBD.
+
+## Why gear retention matters
+
+This model creates several useful effects:
+
+- rare drops are exciting inside the current run;
+- reset has meaningful cost;
+- permanent progression visibly improves quality of life and build control;
+- retained items can define the starting identity of the next build;
+- later runs become faster without making gear permanently irrelevant.
+
+Important risk to watch in testing:
+
+A very rare item must not make the player feel permanently trapped in the current run because resetting would be too painful.
+
+The retention system and reset rewards must keep this tension enjoyable rather than punitive.
+
+## Collections
+
+Collections are fully persistent and are one of the central account-progression systems.
+
+They provide the stable value behind farming.
+
+Even when a run resets:
+
+- Collection progress remains;
+- Collection unlocks remain;
+- newly unlocked build possibilities remain available.
+
+This means repeated farming never completely disappears into a reset.
+
+Collections will be designed after the combat/build mechanics are defined, so their unlocks can support real gameplay interactions rather than arbitrary stat bonuses.
+
+## World map and access
+
+The global map serves two different functions.
+
+### Known world
+
+Shows discovered locations and long-term progression.
+
+### Current-run route
+
+Shows which locations have been re-cleared during the current run and which boss currently blocks forward progression.
+
+After reset, discovered future locations may remain visible but become temporarily inaccessible until the required route is re-cleared or skipped.
+
+## Push and Farm
+
+The player should alternate naturally between:
+
+### Push
+
+- re-clear bosses;
+- return to frontier;
+- beat new progression;
+- unlock new content.
+
+### Farm
+
+- gain XP;
+- advance Collections;
+- hunt gear;
+- complete passive goals;
+- prepare for a wall.
+
+Core relationship:
+
+**Reset → Rebuild → Re-clear → Push → Wall → Farm / Adapt → Push → Reset**
+
+## Key progression events
+
+Not every meaningful event should be a Power choice.
+
+Key events can be used to vary pacing.
 
 Examples:
 
-- Collection progress
-- Specific gear drops
-- Enemy-family mastery
-- Basic resources
-- Achievement progress
+- Location boss → unlock route + reward
+- Major boss → major permanent unlock
+- Collection milestone → new mechanic / Power becomes available
+- Challenge completion → build-rule unlock
+- Reset milestone → later start point or additional retained gear
 
-A previously completed location should remain relevant because its farm value can remain useful after its push value is exhausted.
+Exact rewards are deliberately postponed until the dependent systems are designed.
 
-## Farming after reset
+## First region design order
 
-Because the map is persistent, the player can deliberately select the best rebuilding route.
+The first region should **not** be locked to specific enemies yet.
 
-Example:
+Enemy families are mostly thematic presentation until the underlying combat mechanics are defined.
 
-1. Reset.
-2. Start at Run Level 1 with one chosen build foundation.
-3. Farm a safe old location.
-4. Reach the first Power choice.
-5. Move to a harder location with better XP.
-6. Receive another Power.
-7. Decide whether the emerging build is ready for the frontier.
-8. Push, or continue targeted farming.
+Correct order:
 
-This loop should become increasingly efficient as the player learns the game.
+1. Define combat mechanics.
+2. Define build archetypes and meaningful checks.
+3. Define the first region's teaching sequence.
+4. Assign enemy families that visually communicate those mechanics.
 
-## First region — proposed structure
+For example, if the combat system needs an early AoE lesson, we first define the required encounter behavior and only then decide whether the enemies are goblins, skeletons, slimes or something else.
 
-The first region should be mostly linear.
+## First region goals
 
-Its purpose is to teach:
+Even without specific enemies, the first region should eventually teach:
 
-- basic combat;
-- gear drops;
-- Power choices;
-- enemy groups;
+- basic automated combat;
+- Run XP;
+- first Power choices;
+- gear;
 - Collections;
-- the difference between Push and Farm;
-- the first meaningful wall;
-- the value of revisiting old locations.
+- multiple-enemy encounters;
+- first meaningful build weakness;
+- purposeful farming;
+- boss re-clearing;
+- voluntary reset.
 
-Working region:
+The precise teaching sequence should be created after Combat and initial Power archetypes are defined.
 
-### 1. Overgrown Road
+## First reset
 
-Enemy themes:
+The first reset should become available only after the player has enough context to understand its purpose.
 
-- Slimes
-- Small beasts
+Before the first reset, the player should already understand:
 
-Primary lessons:
+- Run Level;
+- Powers;
+- basic gear;
+- Collections;
+- pushing;
+- farming;
+- at least one meaningful wall.
 
-- Basic combat
-- Run XP
-- First gear drops
-- First Collection progress
-- First Power choice
+The first reset is voluntary once unlocked.
 
-Combat profile:
+The player is free to continue the current run for as long as desired.
 
-Mostly simple single-target enemies.
-
-### 2. Goblin Camp
-
-Enemy themes:
-
-- Goblins
-- Goblin groups
-
-Primary lessons:
-
-- Multiple simultaneous enemies
-- AoE value
-- Faster enemy waves
-- Targeted farming
-
-Combat profile:
-
-Several weak enemies can appear together.
-
-This is the first soft AoE check.
-
-### 3. Spider Den
-
-Enemy themes:
-
-- Spiders
-- Venomous enemies
-
-Primary lessons:
-
-- Damage-over-time pressure
-- Sustain
-- Defensive build considerations
-- Revisiting earlier content for a solution
-
-Combat profile:
-
-The hero can win the damage race but still fail from accumulated poison pressure.
-
-This is a good location for the first explicit:
-
-**“Maybe I should farm something elsewhere first.”**
-
-moment.
-
-### 4. Old Graveyard
-
-Enemy themes:
-
-- Skeletons
-- Undead
-- Necromancer-style enemies
-
-Primary lessons:
-
-- Mixed encounter composition
-- Adds / summons
-- Need for both single-target and multi-target performance
-- First major region boss
-
-Combat profile:
-
-The region boss should test more than raw DPS.
-
-A Necromancer-like boss can combine:
-
-- a priority single target;
-- recurring summoned enemies;
-- sustained pressure.
-
-This creates the first meaningful build check.
-
-## First region progression shape
-
-Intended onboarding arc:
-
-**Overgrown Road**  
-Learn the basic loop.
-
-↓
-
-**Goblin Camp**  
-Discover that enemy composition matters.
-
-↓
-
-**Spider Den**  
-Discover that raw DPS is not the only solution.
-
-↓
-
-**Return to earlier farming if needed**  
-Discover purposeful backtracking.
-
-↓
-
-**Old Graveyard**  
-Combine previous lessons.
-
-↓
-
-**Region Boss**  
-First major build test.
-
-↓
-
-**First major reset / prestige system becomes relevant**
-
-Exact timing is not yet defined.
-
-## The first deliberate backtrack
-
-The first region should intentionally create a reason to revisit older content.
-
-Example only:
-
-- Spider Den creates a sustain problem.
-- A useful sustain-related unlock exists in an earlier Collection.
-- The player can also solve the problem through gear or a strong burst build.
-
-The important principle is not the specific reward.
-
-The principle is:
-
-**The game teaches that returning to old content can be an intelligent progression decision.**
-
-There should be multiple viable solutions so the game does not become a disguised quest checklist.
-
-## First region and reset timing
-
-The first reset should not happen before the player understands:
-
-- what Powers are;
-- what a build is;
-- what a wall feels like;
-- what farming an old location can accomplish.
-
-Current preferred direction:
-
-**The first major reset becomes available around the completion of the first region or its boss.**
-
-Why:
-
-- Reset has context.
-- The player has already formed a build once.
-- The player has experienced enough systems to understand why rebuilding differently could be valuable.
-- The first post-reset run can immediately demonstrate the persistent-world model.
-
-Exact session duration remains a balance decision.
+Exact unlock timing is a balance question.
 
 ## First post-reset experience
 
-This moment is critical.
+This is a critical identity moment.
 
-The player resets and observes:
+The player should immediately understand:
 
 ### Lost
 
 - Run Level
 - Current Powers
 - Temporary run progression
+- Most unprotected gear
+- Current-run boss clears
 
 ### Kept
 
-- World unlocks
-- Gear
 - Collections
 - Permanent unlocks
+- Highest progress reached
+- Discovered world
 - Achievements / Mastery
-- Starting-foundation options
+- Reset progression
+- Protected gear, if any
+- Starting-build options
 
-Then the player sees the entire first region still available.
+Then the player begins from the current reset start point and must again move through the required location bosses.
 
-The game asks:
+The important contrast is:
 
-**“Where do you want to rebuild?”**
+> The route is familiar, but the build and speed are different.
 
-This should be one of the first moments where the project's identity becomes clear.
+## Offline progression
 
-## Offline progression in relation to runs
+Offline play should support farming but not solve build decisions.
 
-Current recommendation:
+Expected offline gains:
 
-Offline play should primarily progress persistent farming outputs.
-
-It can provide:
-
-- basic resources;
-- gear drops;
+- routine resources;
 - Collection progress;
+- eligible drops;
 - passive achievement progress.
 
-For the first implementation, offline play should **not automatically select Powers**.
+Open question:
 
-Preferred MVP option:
+Whether offline play grants Run XP directly.
 
-- Run Level progression is primarily active.
-- Offline mode uses the last confirmed build.
-- Offline does not make strategic build choices.
+If it does, Power choices must remain pending rather than being selected automatically.
 
-If later testing shows that offline run XP is important, XP can be banked while Power selections remain pending.
+Offline should never automatically construct the player's build.
 
-This can be revisited after the active loop is playable.
+## Locked decisions from v0.2
 
-## Session loop example
+The following are currently considered design decisions rather than hypotheses:
 
-1. Player opens the game.
-2. Claims offline farming from Goblin Camp.
-3. Goblin Collection reaches a milestone.
-4. A new build option becomes available.
-5. Player resets because the current run is already stalled.
-6. Chooses a Crit-oriented starting foundation.
-7. Farms an older location for early Run Levels.
-8. Receives random Power choices.
-9. The run unexpectedly develops toward Crit + AoE.
-10. Player returns to the frontier.
-11. The new setup breaks the previous wall.
-12. A new location opens.
-13. A new enemy mechanic exposes another weakness.
-14. The player creates a new farming objective.
+1. Reset is voluntary.
+2. Run Level resets.
+3. Powers reset.
+4. Collections persist.
+5. Most gear initially resets.
+6. Permanent progression can increase how much gear survives reset.
+7. Location bosses must be re-cleared after reset from the run's current start point onward.
+8. Higher reset progression allows later start points and/or progression skipping.
+9. XP grants Powers.
+10. Key progression events also grant meaningful rewards and can sometimes grant Powers.
+11. A player may remain in one run indefinitely.
+12. Extremely difficult walls and diminishing returns, not timers, encourage reset.
+13. Starting-build control exists but does not guarantee the full build.
+14. Enemy/location theming will be chosen after mechanics are defined.
 
-The session continues through player-created goals.
+## Open questions for later sections
 
-## Design constraints
-
-The run system should avoid:
-
-- forcing replay of tutorial content;
-- mandatory tap gameplay;
-- harsh death punishment;
-- fully deterministic perfect builds;
-- runs that become worthless after bad RNG;
-- resets that exist only to multiply all numbers;
-- too many temporary currencies;
-- automatic offline decision-making.
-
-## Open questions for the next sections
-
-The following remain intentionally unresolved:
-
-1. Exact base combat stats.
-2. Exact Run Level curve.
-3. Power choice cadence.
-4. Power rarity / tier structure.
-5. Exact first prestige reward.
-6. Starting-foundation implementation.
-7. Gear slot count and affix system.
-8. Whether farming has selectable difficulty tiers inside each location.
-9. Exact offline XP behavior.
-10. Exact first-region enemies and Collection rewards.
-
-These should be resolved through the Combat, Powers, Collections and Prestige documents rather than guessed in isolation.
+1. Exact reset reward structure.
+2. Exact rule for advancing the reset start point.
+3. Whether the progression skip is a quest, perk, milestone or combination.
+4. Initial number of protected gear slots.
+5. Gear slot and affix system.
+6. Exact Run Level curve.
+7. Power choice cadence.
+8. Power rarity / tier structure.
+9. Starting-foundation implementation.
+10. Offline Run XP behavior.
+11. First-region mechanical teaching sequence.
