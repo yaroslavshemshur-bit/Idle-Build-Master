@@ -1,6 +1,6 @@
 # 05 — Gear
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -42,7 +42,9 @@ Future sources can include:
 
 ## Six equipment slots
 
-All six equipment slots are available from the beginning.
+All six equipment slots exist from the beginning.
+
+Gear drops begin only after an early progression milestone, normalized to approximately the reference game's level-10 gear introduction in the first Location.
 
 Working slot structure:
 
@@ -267,6 +269,12 @@ The UI should eventually communicate where discovered items can drop.
 ## First Location requirements
 
 The first Location should already demonstrate the gear loop.
+
+Baseline timing:
+
+- the first ~14% of the Location teaches combat and the first Power without loot noise;
+- gear drops begin around the normalized reference level-10 milestone;
+- from that point onward, all six slots can drop.
 
 It should include:
 
