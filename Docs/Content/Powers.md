@@ -1,12 +1,12 @@
-# Prototype Powers
+# Initial Implementation Powers
 
 **Status:** Draft v0.1  
 **Date:** 2026-09-28  
-**Target:** First 25-Power reference-first prototype pool
+**Target:** First 25-Power reference-first implementation pool
 
 ## Purpose
 
-This file contains concrete Power content for the first playable prototype.
+This file contains the first concrete Power content planned for game implementation.
 
 The first pool intentionally maximizes reuse of **Idle Superpowers** mechanics and values.
 
@@ -29,7 +29,7 @@ Primary reference pages checked on 2026-09-28:
 
 Reference values marked with `*` on the wiki are affected by Power Mastery in Idle Superpowers.
 
-For the prototype, listed values below are the **base pre-Mastery values**.
+For the initial implementation, listed values below are the **base pre-Mastery values**.
 
 ## Multi-enemy event-scope rules
 
@@ -59,7 +59,7 @@ These Powers are explicitly marked **Normalize/Test** and should be benchmarked 
 
 ### Death-damage rule
 
-A reference death effect that damages "the enemy" targets the current primary enemy in prototype v0.1.
+A reference death effect that damages "the enemy" targets the current primary enemy in initial implementation v0.1.
 
 It does **not** automatically hit all enemies.
 
@@ -84,7 +84,7 @@ The first Power choice presents all three.
 ## P001 — Giant's Might
 
 **Reference:** Super Strength  
-**Prototype effect:** Strength ×10  
+**Initial effect:** Strength ×10  
 **Reference unlock:** Automatic  
 **Our unlock:** Starting PowerDex  
 **Family:** Strength / Max Damage  
@@ -102,7 +102,7 @@ The first Power choice presents all three.
 ## P002 — Windstep
 
 **Reference:** Super Speed  
-**Prototype effect:** Agility ×10  
+**Initial effect:** Agility ×10  
 **Reference unlock:** Automatic  
 **Our unlock:** Starting PowerDex  
 **Family:** Agility / Attack Speed / Evasion  
@@ -120,7 +120,7 @@ The first Power choice presents all three.
 ## P003 — Precision Training
 
 **Reference:** Super Dexterity  
-**Prototype effect:** Dexterity ×10  
+**Initial effect:** Dexterity ×10  
 **Reference unlock:** Automatic  
 **Our unlock:** Starting PowerDex  
 **Family:** Dexterity / Min Damage / Accuracy  
@@ -140,7 +140,7 @@ The first Power choice presents all three.
 ## P004 — Iron Constitution
 
 **Reference:** Super Vitality  
-**Prototype effect:** Vitality ×10  
+**Initial effect:** Vitality ×10  
 **Reference unlock:** Time Travel Level 1  
 **Our unlock:** First voluntary reset completed  
 **Family:** Vitality / HP / Regeneration / Block  
@@ -230,7 +230,7 @@ It teaches one new combat relationship at a time.
 ## P008 — Force Grip
 
 **Reference:** Telekinesis  
-**Prototype effect:** Max Damage ×10  
+**Initial effect:** Max Damage ×10  
 **Reference unlock:** Progress Level 5 / reach level 50  
 **Our unlock:** Early World Progress milestone 5  
 **Family:** Max Damage  
@@ -261,7 +261,7 @@ It teaches one new combat relationship at a time.
 **Multi-enemy adjustment:** None  
 **Implementation:** Stat multiplier + run-XP multiplier
 
-**Balance note:** XP ×5 is intentionally copied from the reference for prototype testing. This is pacing-sensitive in our Run Level system and must be benchmarked before production balance.
+**Balance note:** XP ×5 is intentionally copied from the reference for initial implementation testing. This is pacing-sensitive in our Run Level system and must be benchmarked before final balance.
 
 **Primary synergies:**
 - Eagle Eye.
@@ -294,7 +294,7 @@ It teaches one new combat relationship at a time.
 ## P011 — Dragon Breath
 
 **Reference:** Fire Breathing  
-**Prototype effect:** 50% chance to ignore 70% of enemy Block.  
+**Initial effect:** 50% chance to ignore 70% of enemy Block.  
 **Reference unlock:** Progress Level 8 / reach level 80  
 **Our unlock:** Early World Progress milestone 8  
 **Family:** Block Bypass  
@@ -335,7 +335,7 @@ It teaches one new combat relationship at a time.
 ## P013 — Pain-Forged Strength
 
 **Reference:** Pain Muscles  
-**Prototype effect:** On getting hit, Strength ×1.1 for 5 seconds. Trigger chance: 100%.  
+**Initial effect:** On getting hit, Strength ×1.1 for 5 seconds. Trigger chance: 100%.  
 **Reference unlock:** Progress Level 10 / reach level 100  
 **Our unlock:** Early World Progress milestone 10  
 **Family:** Reactive Strength / Buff Stacking  
@@ -343,7 +343,7 @@ It teaches one new combat relationship at a time.
 **Multi-enemy adjustment:** **High-priority Normalize/Test.** Six independent enemies can produce far more buff events than the 1v1 reference.  
 **Implementation:** OnHitTaken → timed Strength multiplier
 
-**Prototype rule:** Start with the reference value and normal buff-stacking behavior. Do not pre-nerf until measured.
+**Initial rule:** Start with the reference value and normal buff-stacking behavior. Do not pre-nerf until measured.
 
 **Primary synergies:**
 - Ghost Step.
@@ -360,7 +360,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P014 — Executioner's Instinct
 
 **Reference:** Fear Strength  
-**Prototype effect:** Increase Strength by 20% for each missing 1% of the current primary enemy's Health.  
+**Initial effect:** Increase Strength by 20% for each missing 1% of the current primary enemy's Health.  
 **Reference unlock:** Strong Level 1  
 **Our unlock:** Strength Achievement I  
 **Family:** Strength / Execute Scaling  
@@ -467,7 +467,7 @@ These Powers reward the player for using specific parts of the combat system.
 ## P019 — Spiked Armor
 
 **Reference:** Spike Skin  
-**Prototype effect:** 50% chance to damage the source enemy for 50% of damage when getting hit.  
+**Initial effect:** 50% chance to damage the source enemy for 50% of damage when getting hit.  
 **Reference unlock:** Blocky Level 2  
 **Our unlock:** Block Achievement II  
 **Family:** Reactive Damage  
@@ -618,7 +618,7 @@ These Powers reward the player for using specific parts of the combat system.
 
 ---
 
-# Prototype unlock sequence
+# Initial unlock sequence
 
 The intended first pass is:
 
@@ -635,7 +635,7 @@ The exact timing and achievement thresholds are **not** locked.
 
 The ordering and reference mechanics are the important part.
 
-# First prototype build clusters
+# First implementation build clusters
 
 These are not formal classes. They are useful test clusters.
 
@@ -747,7 +747,7 @@ Our Run Level directly controls Power acquisition.
 
 These effects may accelerate not only stats, but the rate at which the build gains new mechanics.
 
-Do not preemptively remove them; prototype first.
+Do not preemptively remove them; implement first and measure.
 
 ## Control
 
@@ -778,7 +778,7 @@ The following are intentionally excluded from this first reference-first pool:
 - advanced Death/Revive chains
 - Rotation-style weird Powers
 
-These are the next expansion layer after the 25 reference-based Powers are playable.
+These are the next expansion layer after the 25 reference-based Powers are implemented.
 
 # Implementation data requirements
 
