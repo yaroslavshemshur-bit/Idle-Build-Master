@@ -1,6 +1,6 @@
 # 03 — Combat
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-28
 
 ## Combat philosophy
@@ -57,9 +57,139 @@ Primary roles:
 - increases Min Damage;
 - increases Accuracy.
 
-The exact formulas are intentionally postponed until balance work.
+The first implementation uses the Idle Superpowers formulas as the baseline.
 
 The important structural rule is that each primary attribute affects more than one meaningful combat outcome.
+
+## Baseline combat formulas
+
+These formulas are implementation defaults, not merely examples.
+
+They are inherited from Idle Superpowers unless explicitly marked as a project deviation.
+
+### Min Damage
+
+```
+MinDamage = 5 + Dexterity / 2
+```
+
+### Max Damage
+
+```
+MaxDamage = MinDamage + 2 * Strength
+```
+
+A normal direct hit rolls damage between Min Damage and Max Damage.
+
+### Max Health
+
+```
+MaxHealth = 20 + 100 * Vitality
+```
+
+### Block
+
+Raw Block rating:
+
+```
+Block = Strength / 10 + Vitality / 2
+```
+
+Damage multiplier after Block:
+
+```
+DamageTakenMultiplier = 100 / (Block + 100)
+```
+
+Equivalent damage reduction:
+
+```
+DamageReduction = Block / (Block + 100)
+```
+
+If an effect ignores part of Block, reduce the target's effective Block before applying the formula.
+
+Multiple independent Block-ignore effects multiply the remaining Block rather than adding ignored percentages.
+
+Example:
+
+- ignore 50% Block;
+- then ignore 70% of remaining Block;
+- effective Block = original Block × 0.5 × 0.3.
+
+This prevents ordinary Block-bypass stacking from exceeding 100%.
+
+### Accuracy
+
+```
+Accuracy = 100 + Dexterity
+```
+
+### Evasion
+
+```
+Evasion = 100 + Agility
+```
+
+### Hit Chance
+
+```
+HitChance = clamp(Accuracy / TargetEvasion, 0.05, 0.95)
+```
+
+A single Hit Chance roll resolves both hit and evade.
+
+There is no second independent dodge roll.
+
+### Attack Speed
+
+Reference rating:
+
+```
+AttackSpeedRating = 1 + Agility / 100
+```
+
+Effective attacks per second:
+
+```
+AttacksPerSecond = log2(2 * AttackSpeedRating)
+```
+
+Idle Superpowers hard-caps actual attacks at 30 attacks/sec.
+
+**Project deviation:** Idle Build Master keeps the logarithmic diminishing-return curve but does not use a gameplay hard cap by design.
+
+If extremely high values become technically expensive, attacks may be simulated in aggregate while preserving the mathematical result.
+
+### Regeneration
+
+While alive:
+
+```
+RegenPerSecond = 1 + Vitality / 10
+```
+
+While downed:
+
+```
+DeathRegenPerSecond = RegenPerSecond * 10
+```
+
+This ×10 death-regeneration multiplier is the initial reference baseline and can later be modified by permanent progression or Powers.
+
+### Crit
+
+Crit is a project extension and has no inherited baseline formula yet.
+
+The combat architecture supports:
+
+- Crit Chance;
+- Crit Damage;
+- OnCrit events.
+
+Exact starting Crit values are deferred until Crit enters actual content.
+
+Crit is therefore **not required for the first-location reference-based Power set**.
 
 ## Damage range
 
@@ -245,15 +375,15 @@ Exact formula is deferred to balance work.
 
 ## Attack Speed
 
-Attack Speed uses **soft cap / diminishing returns**, not a hard cap.
+Attack Speed uses the logarithmic reference formula defined above.
 
-Players should be allowed to create extreme Attack Speed builds.
+This gives strong diminishing returns while still allowing extreme stat values.
 
-The system should support very high effective hit frequency while preventing runaway formula instability.
+The project intentionally avoids a gameplay hard cap.
 
-Visual animation does not need to literally play every hit at extreme speeds.
+Visual animation does not need to literally play every mathematical hit at extreme speeds.
 
-Implementation can later aggregate or compress visual feedback while preserving combat math.
+Rendering and simulation may aggregate attacks while preserving combat outcomes.
 
 ## Sustain
 
@@ -280,16 +410,27 @@ This keeps the base stat surface readable while preserving build depth.
 
 ## Death and downed state
 
-Death does **not** reset the run.
+Death does **not** reset the run and does **not** reset the encounter.
 
 When HP reaches zero:
 
-1. the hero enters a downed / death state;
-2. temporary combat-state buffs and stacks are cleared;
-3. the hero recovers according to the recovery model;
-4. the encounter can restart or the player can change strategy.
+1. resolve fatal-hit prevention effects, if any;
+2. if death still occurs, fire OnDeath;
+3. clear the hero's temporary combat-state buffs and stacks;
+4. the hero enters the downed state;
+5. the hero regenerates at Death Regeneration speed;
+6. when restored to full HP, the hero revives;
+7. the same encounter continues.
 
-Death is intended to be a build-state reset, not a run reset.
+Enemy HP is **not restored** when the hero dies.
+
+This deliberately allows the player to slowly chip away at an enemy or boss across repeated deaths.
+
+By default, enemies do not regenerate while the hero is downed, matching the reference behavior.
+
+A specific enemy or boss mechanic may explicitly override this rule.
+
+Death is a build-state reset, not an encounter failure.
 
 ## Combat stacks
 
@@ -352,7 +493,7 @@ This is allowed to become a real build direction rather than only a failure stat
 
 Default rule:
 
-On death, clear:
+On death, clear from the hero:
 
 - timed buffs;
 - timed debuffs;
@@ -366,9 +507,104 @@ Do not clear:
 - Powers;
 - Run Level;
 - gear;
-- persistent run modifiers.
+- persistent run modifiers;
+- enemy current HP;
+- the current encounter.
 
 Specific Powers may override these defaults.
+
+## Buff and debuff stacking rules
+
+Unless an effect explicitly says otherwise:
+
+- repeated timed buffs from the same Power create independent stacks;
+- repeated timed debuffs create independent stacks;
+- each stack has its own duration;
+- multiplicative stacks multiply with each other;
+- additive effects add with each other;
+- expiration removes only the expiring stack.
+
+Example:
+
+A Power grants:
+
+```
+Strength ×1.1 for 5 seconds on getting hit
+```
+
+If it triggers 10 times before any stack expires:
+
+```
+Strength multiplier = 1.1^10
+```
+
+This exponential interaction is intentional and is one of the main sources of extreme builds.
+
+A Power may explicitly define:
+
+- non-stackable;
+- refresh duration instead of adding a stack;
+- maximum stack count;
+- additive stacking;
+- shared cooldown.
+
+Those rules override the default.
+
+## Stat calculation order
+
+To avoid ambiguous Power interactions, stats resolve in layers.
+
+### Layer 1 — Primary attributes
+
+Resolve flat/additive changes to:
+
+- Strength;
+- Vitality;
+- Agility;
+- Dexterity.
+
+Then apply multiplicative modifiers to those attributes.
+
+### Layer 2 — Baseline derived stats
+
+Calculate:
+
+- Min Damage;
+- Max Damage;
+- Max Health;
+- Block;
+- Accuracy;
+- Evasion;
+- Attack Speed;
+- Regeneration.
+
+using the baseline formulas.
+
+### Layer 3 — Derived-stat conversions and additions
+
+Apply effects such as:
+
+- add Min Damage based on Accuracy;
+- add Strength based on missing HP;
+- add Max Damage based on another resolved stat.
+
+Dependencies must be acyclic.
+
+If a Power would create a circular dependency, it requires an explicit custom resolution rule and cannot rely on generic stat calculation.
+
+### Layer 4 — Derived-stat multipliers
+
+Apply multiplicative modifiers such as:
+
+- Max Damage ×10;
+- Block ×5;
+- Regeneration ×0.25.
+
+### Layer 5 — temporary state
+
+Apply currently active timed buffs/debuffs using the same additive-then-multiplicative rule for the stat they modify.
+
+This order should be data-driven so individual Powers do not implement their own private stat math.
 
 ## Crowd Control
 
@@ -421,31 +657,44 @@ The player should solve these by changing:
 
 The player should not need to dodge telegraphs manually.
 
-## Encounter failure
+## No formal defeat state
 
-### Progression encounter
+Normal combat has no global "Defeat" state.
 
-If the hero dies:
+If the hero dies, the encounter continues after revival with enemy HP preserved.
 
-- the encounter fails;
-- push does not advance;
-- the player may retry;
-- change gear;
-- farm elsewhere;
-- or reset voluntarily.
+The player decides when the current situation should be treated as a wall.
 
-No permanent penalty is applied.
+A run may therefore be:
 
-### Farming encounter
+- progressing efficiently;
+- progressing slowly;
+- effectively stalled;
+- being used for farming.
 
-The hero may repeatedly die and recover while farming, depending on final farming implementation.
+The player may continue chipping an enemy indefinitely if that is worthwhile.
 
-Death can reduce efficiency because combat stacks are lost.
+This is intentional.
+
+A boss can create a harder wall through its own mechanics, for example:
+
+- regeneration;
+- healing;
+- shields;
+- summons;
+- escalation;
+- enrage;
+- another rule that outpaces the player's progress.
+
+Those are encounter mechanics, not a universal defeat timer.
+
+Death still reduces efficiency because temporary combat stacks and buffs are lost.
 
 This creates a natural distinction between:
 
-- stable farming build;
-- fragile high-output build.
+- stable farming builds;
+- fragile high-output builds;
+- death/revive builds that exploit the downed cycle.
 
 ## No manual active skill
 
@@ -485,6 +734,77 @@ Balance should focus on:
 - ensuring discovery and experimentation remain valuable.
 
 The goal is **not** to make every viable build equally strong at all times.
+
+## Combat resolution order
+
+Combat uses deterministic event ordering so Power interactions do not depend on implementation accident.
+
+### Continuous update
+
+Between discrete events:
+
+1. advance attack timers;
+2. advance buff/debuff durations;
+3. apply Regeneration;
+4. apply periodic effects such as future DoT;
+5. process expired effects.
+
+### Direct attack pipeline
+
+When an actor's attack becomes ready:
+
+1. **Select Target**
+2. **OnAttack**
+3. resolve attack-redirection effects such as "enemy attacks itself"
+4. calculate Hit Chance
+5. roll Hit / Miss
+6. if Miss → **OnMiss** / **OnEvade**, then stop this attack
+7. roll base damage between Min Damage and Max Damage
+8. resolve Crit if the attack is Crit-eligible
+9. apply outgoing damage modifiers
+10. resolve Block-bypass effects
+11. apply target Block reduction
+12. apply HP damage
+13. if the hit would be fatal, resolve fatal-hit prevention effects
+14. emit **OnDamageDealt / OnDamageTaken**
+15. emit **OnHit / OnHitTaken**
+16. resolve triggered effects through the event queue
+17. resolve deaths caused by the attack or its triggered effects
+18. emit **OnKill / OnEnemyDeath / OnDeath** as applicable
+19. if all enemies are dead → encounter clears
+
+A successful hit can therefore trigger OnHit effects even when that hit is fatal.
+
+### Trigger queue
+
+Triggered combat effects resolve in FIFO order within their priority tier.
+
+Priority tiers:
+
+1. attack replacement / cancellation;
+2. fatal-hit prevention;
+3. damage/healing application;
+4. hit/damage reactions;
+5. death/revive effects;
+6. encounter-state effects.
+
+A triggered effect may enqueue another event.
+
+The event system must prevent infinite trigger loops through explicit source rules, cooldowns, or a safety recursion limit.
+
+### Simultaneous enemy attacks
+
+Enemies have independent attack timers.
+
+If several attacks become ready on the same simulation step, resolve them in a stable deterministic order, then advance to newly generated events.
+
+Do not merge multiple enemies into one synthetic group attack.
+
+### Encounter clear while hero is downed
+
+If the final enemy dies while the hero is downed, the encounter counts as cleared.
+
+The next encounter waits until the hero revives unless a future rule explicitly says otherwise.
 
 ## Combat event hooks
 
@@ -550,7 +870,7 @@ Combat mechanics should be implemented so new Powers can often be created by con
 
 The production goal is to create a large amount of build content without requiring unique code for every Power.
 
-## Locked decisions from v0.1
+## Locked decisions from v0.2
 
 1. Fully automatic combat.
 2. No manual target selection.
@@ -572,16 +892,25 @@ The production goal is to create a large amount of build content without requiri
 18. No mandatory active combat skill in MVP.
 19. Extremely strong and partially broken synergies are intentionally allowed.
 20. Combat should be built around reusable event hooks.
+21. Baseline STR/VIT/AGI/DEX-derived formulas inherit Idle Superpowers values.
+22. Death does not restore enemy HP and does not restart the encounter.
+23. There is no universal defeat state; the player decides when progression is stalled.
+24. Standard enemies do not regenerate while the hero is downed unless explicitly overridden.
+25. Downed regeneration starts at 10× normal Regeneration.
+26. Repeated timed buffs/debuffs independently stack by default.
+27. Multiplicative timed stacks multiply exponentially.
+28. Combat uses an explicit deterministic event-resolution order.
+29. Attack Speed keeps the reference logarithmic curve but removes the gameplay hard cap as a deliberate project deviation.
 
 ## Open questions for later
 
-1. Exact formulas for primary attributes.
-2. Exact Block formula.
-3. Exact Attack Speed curve.
-4. Exact Accuracy / Evasion hit-chance formula.
-5. Exact Regeneration / death recovery model.
-6. Exact Crit baseline values.
-7. Which DoTs exist in MVP.
-8. Exact CC duration scaling and boss resistance rules.
-9. Farming behavior after repeated deaths.
-10. Exact Power trigger/effect schema.
+The following do **not** block implementation of the first location's reference-based combat:
+
+1. Exact Crit baseline values.
+2. Which DoTs enter the first content expansion.
+3. Exact CC resistance model for later bosses.
+4. Final AoE secondary-hit proc policy.
+5. Final technical strategy for aggregating extremely high attack rates.
+6. Advanced Power trigger/effect schema beyond the current 25-Power set.
+
+Enemy curves, XP curves and encounter composition are content/pacing decisions and should be defined together with the first location rather than inside the universal combat rules.
