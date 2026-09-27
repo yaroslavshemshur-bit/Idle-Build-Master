@@ -1,6 +1,6 @@
 # 03 — Combat
 
-**Status:** Draft v0.4  
+**Status:** Draft v0.5  
 **Date:** 2026-09-28
 
 ## Combat philosophy
@@ -58,6 +58,17 @@ Primary roles:
 - increases Accuracy.
 
 The first implementation uses the Idle Superpowers formulas as the baseline.
+
+At the beginning of a fresh run, before EXP purchases, the hero starts at:
+
+```
+Strength = 1
+Vitality = 1
+Agility = 1
+Dexterity = 1
+```
+
+Starting at 1 rather than 0 keeps the first encounters functional and ensures multiplicative Powers such as Strength ×10 have immediate value.
 
 The important structural rule is that each primary attribute affects more than one meaningful combat outcome.
 
@@ -664,59 +675,95 @@ The first Location Boss must already demonstrate the game's buildcraft hook.
 
 It should not be a placeholder stat wall.
 
-At the same time, it should be passable for almost every player because the first boss must create curiosity rather than rejection.
+At the same time, it should be passable for almost every functional first-run build because the first Boss should create curiosity rather than rejection.
+
+### Baseline primary stats
+
+Initial calibration:
+
+```
+Strength = 109
+Vitality = 238
+Agility = 64
+Dexterity = 89
+```
+
+Using the universal combat formulas, this gives approximately:
+
+```
+Max HP = 23,820
+Min Damage = 49.5
+Max Damage = 267.5
+Block = 129.9
+Block Damage Reduction = 56.50%
+Accuracy = 189
+Evasion = 164
+Attacks/sec = 1.714
+Regeneration/sec = 24.8
+```
+
+These are first-Location calibration values and may move after live combat measurement without changing the Boss mechanic.
 
 ### Core mechanic: Fortify → Break → Exposed
 
-Working behavior:
+Cycle baseline:
 
-1. Boss fights normally.
-2. Boss enters **Fortify** periodically.
-3. During Fortify, Block increases heavily.
-4. Successful hero hits contribute toward breaking Fortify.
-5. After enough valid hits, Fortify breaks.
-6. Boss enters **Exposed** for a limited duration.
-7. During Exposed, Block is greatly reduced and/or incoming damage is amplified.
-8. Boss returns to normal and the cycle can repeat.
+1. Boss begins in **Normal** state for 6 seconds.
+2. Boss enters **Fortify**.
+3. During Fortify:
+   - Block ×5;
+   - each successful direct hero hit contributes 1 Break point;
+   - 16 successful hits break Fortify.
+4. Boss enters **Exposed** for 6 seconds.
+5. During Exposed:
+   - Block ×0.25;
+   - no extra universal damage-taken multiplier is added in the first implementation.
+6. Boss returns to Normal and the cycle repeats.
 
-Exact timings, Block values and required hit counts belong to first-Location balance.
+With the baseline Boss stats:
 
-### Why this is the first boss mechanic
+```
+Normal Block = 129.9
+Fortify Block = 649.5
+Fortify Damage Reduction ≈ 86.66%
 
-Different build directions solve the same mechanic differently:
+Exposed Block = 32.475
+Exposed Damage Reduction ≈ 24.52%
+```
 
-- **Attack Speed** breaks Fortify quickly.
-- **Max Damage / Strength** gets high value during Exposed windows.
-- **Block Bypass** partially ignores Fortify.
-- **Sustain** survives long cycles and chips the Boss down.
-- **Death / Revive** can continue making permanent HP progress across repeated hero deaths.
+Only successful hits count toward Break.
 
-The player does not manually react to the phase.
+Therefore:
 
-The build reacts.
+- Attack Speed improves Break speed;
+- Accuracy affects Break reliability;
+- high raw damage benefits strongly from Exposed windows;
+- Block-bypass Powers can partially ignore Fortify;
+- sustain can survive repeated cycles;
+- death/revive builds can keep making permanent HP progress across deaths.
 
 ### Accessibility constraint
 
-The first Boss should not use a universal hard fail.
+The first Boss has no universal hard fail.
 
-For the first implementation it should avoid:
+For the first implementation it does not use:
 
 - healing to full;
-- infinite regeneration that outpaces almost every build;
+- unavoidable regeneration that invalidates most builds;
 - hard enrage wipe;
 - mandatory manual timing;
-- an unavoidable DPS timer.
+- a global DPS timer.
 
-Because Boss HP persists through hero deaths, even a weak build can usually make eventual progress.
+Boss HP persists through hero deaths.
 
-Target outcome:
+Target experience:
 
-- a good build wins quickly and feels clever;
-- an average build wins normally;
-- a weak build may take several deaths or several minutes;
+- strong synergy → fast, satisfying kill;
+- average build → normal kill;
+- weak but functional build → several cycles and possibly several deaths;
 - only pathological / nonfunctional setups should feel practically impossible.
 
-This preserves the game's no-formal-defeat philosophy while still making the first Boss mechanically memorable.
+The mechanic is intentionally real from version one: the player should already feel that different builds interact with the same Boss in meaningfully different ways.
 
 ## No formal defeat state
 
@@ -965,6 +1012,9 @@ The production goal is to create a large amount of build content without requiri
 30. The first Location Boss uses a real build-check mechanic rather than a placeholder stat wall.
 31. First Boss baseline is Fortify → Break → Exposed.
 32. The first Boss avoids a universal hard fail and should be eventually passable by almost every functional build.
+33. Fresh-run starting primary stats are STR/VIT/AGI/DEX = 1/1/1/1.
+34. First Boss baseline stats are 109 STR / 238 VIT / 64 AGI / 89 DEX.
+35. First Boss cycle is 6s Normal → Fortify (Block ×5, break after 16 successful hits) → 6s Exposed (Block ×0.25).
 
 ## Open questions for later
 
