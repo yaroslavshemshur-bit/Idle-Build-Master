@@ -21,12 +21,13 @@ Source of truth for game design and production decisions.
 - [02 — Run & Progression Structure](GameDesign/02_Run_Progression.md)
 - [03 — Combat](GameDesign/03_Combat.md)
 - [04 — Powers & Build Archetypes](GameDesign/04_Powers_Builds.md)
+- [05 — Gear](GameDesign/05_Gear.md)
 
 Planned next:
 
-- 05 — Collections
 - 06 — World & Locations
-- 07 — Prestige
+- 07 — Collections
+- 08 — Prestige
 
 ### Content
 
