@@ -1,6 +1,6 @@
 # 02 — Run & Progression Structure
 
-**Status:** Draft v0.4  
+**Status:** Draft v0.5  
 **Date:** 2026-09-28
 
 ## Purpose of a run
@@ -202,7 +202,7 @@ The player manually spends EXP on:
 
 Spending EXP does **not** advance World Progress and does **not** directly grant Powers.
 
-This follows the Idle Superpowers model rather than using a separate XP-driven Run Level.
+This follows the Idle Superpowers model rather than using a separate XP-driven EXP / primary-stat growth.
 
 ## Reset start point
 
@@ -299,7 +299,7 @@ When a wall appears, the player can:
 
 - farm Collections;
 - hunt gear;
-- gain more Run Levels;
+- farm more EXP and buy additional STR / VIT / AGI / DEX;
 - seek additional Powers;
 - change equipment;
 - pursue another permanent objective;
@@ -405,29 +405,31 @@ Baseline:
 Reference milestone mapping:
 
 ```
-FirstRunEncounterMilestone(L) = ceil(100 × L / 70)
+FirstRunEncounterMilestone(L) = ceil(100 × (L - 1) / 69)
 ```
 
 where `L` is the equivalent reference level.
 
 | Reference equivalent | First-run cumulative encounter | Purpose |
 |---:|---:|---|
-| 1 | 2 | first Power choice |
-| 10 | 15 | gear drops begin / gear loop introduced |
-| 20 | 29 | Progress unlock: Stormbrand analogue |
+| 2 | 2 | first Power choice |
+| 10 | 14 | gear drops begin / gear loop introduced |
+| 20 | 28 | Progress unlock: Stormbrand analogue |
 | 30 | 43 | Progress unlock + special first-run Power choice |
-| 40 | 58 | next Progress Power unlock |
+| 40 | 57 | next Progress Power unlock |
 | 50 | 72 | Progress unlock + normal Power choice |
 | 60 | 86 | next Progress Power unlock |
 | 70 | 100 | final first-Location Progress unlock + Location Boss |
 
 These encounter numbers are a first-run calibration table, not a separate leveling system.
 
+The denominator is 69 because the reference starts at level 1: reaching level 70 requires clearing levels 1–69. With the baseline 10 enemies per level, that is 690 ordinary enemy kills before the level-70 boss.
+
 The authoritative trigger is normalized World Progress through the Location. When Stage Compression lowers required encounters, the player reaches the same World Progress milestones with fewer actual fights, matching the purpose of the reference Sublevel upgrade.
 
 ## Powers come from multiple sources
 
-Powers are **not only XP rewards**.
+Powers are **not only automatic progression rewards**.
 
 ### Regular source: World Progress milestones
 
@@ -602,7 +604,7 @@ The player should alternate naturally between:
 
 ### Farm
 
-- gain XP;
+- gain EXP;
 - advance Collections;
 - hunt gear;
 - complete passive goals;
@@ -648,7 +650,7 @@ For example, if the combat system needs an early AoE lesson, we first define the
 Even without specific enemies, the first region should eventually teach:
 
 - basic automated combat;
-- Run XP;
+- EXP and manual primary-stat upgrades;
 - first Power choices;
 - gear;
 - Collections;
@@ -666,7 +668,7 @@ The first reset should become available only after the player has enough context
 
 Before the first reset, the player should already understand:
 
-- Run Level;
+- EXP and purchased primary-stat upgrades;
 - Powers;
 - basic gear;
 - Collections;
@@ -724,9 +726,9 @@ Expected offline gains:
 
 Open question:
 
-Whether offline play grants Run XP directly.
+Whether offline play grants EXP directly.
 
-If it does, Power choices must remain pending rather than being selected automatically.
+Offline EXP can increase the spendable EXP pool, but it must not advance World Progress or automatically select Powers.
 
 Offline should never automatically construct the player's build.
 
