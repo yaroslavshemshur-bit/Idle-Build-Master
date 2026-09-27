@@ -1,6 +1,6 @@
 # 01 — Core Loop
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-27
 
 ## Core loop
@@ -86,6 +86,7 @@ Purpose:
 - Advance a Collection
 - Find a specific item
 - Gain currency
+- Gain EXP for STR / VIT / AGI / DEX
 - Improve mastery
 - Complete passive achievements
 - Prepare a solution to a wall
@@ -125,11 +126,22 @@ Fighting specific enemy families or obtaining their resources advances related C
 
 Collections should frequently unlock gameplay possibilities rather than only permanent percentages.
 
-### 4. Run progress
+### 4. World / run progress
 
-The current run produces opportunities to gain Powers and shape the current build.
+Progress through Location Stages determines when the player reaches Power choices, permanent unlock milestones and bosses.
 
-The exact mechanism — hero level, milestones, XP or another structure — will be defined in the progression document.
+**EXP is a separate spendable run resource.**
+
+Enemies grant EXP, and the player spends it manually on:
+
+- Strength;
+- Vitality;
+- Agility;
+- Dexterity.
+
+Spending EXP increases combat strength but does not directly advance World Progress.
+
+This follows the Idle Superpowers separation between progression level and EXP-driven stat growth.
 
 ## Powers and build decisions
 
@@ -271,7 +283,8 @@ The player mostly reads the build rather than manually executing combat.
 
 The player periodically makes meaningful changes:
 
-- choose a Power;
+- choose a Power at a progression milestone;
+- spend EXP on STR / VIT / AGI / DEX;
 - equip or compare an item;
 - switch location;
 - continue pushing;
@@ -339,10 +352,9 @@ The session extends because new decisions create new objectives, not because the
 Do not lock these yet:
 
 - first prestige timing;
-- stage counts;
-- exact DPS / HP formulas;
-- exact Power frequency;
-- exact gear rarity system;
+- exact EXP income and stat-upgrade cost curves;
+- exact enemy scaling values;
+- final late-game Power frequency beyond the reference-first baseline;
 - prestige currencies;
 - ad placements;
 - IAP structure;
