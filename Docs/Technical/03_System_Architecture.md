@@ -88,6 +88,8 @@ Do not imply that every command requires a fresh HTTP request in connected mode:
 
 Use ScriptableObjects for Unity authoring convenience. Compile them to plain immutable definitions plus a manifest. Domain consumes `IContentCatalog`, never ScriptableObject references. The same catalog schema can later be loaded from a validated server bundle.
 
+**Tuning ownership:** Every gameplay balance quantity is authored in a ScriptableObject: either the relevant content definition asset (for example enemy stats, encounter EXP budget, Power magnitude or loot weights) or a shared balance-tuning asset for cross-content coefficients and curves. The compiled plain-C# catalog is the simulation's immutable active snapshot. Balance IDs, numeric kind, version and validation are explicit; a change activates as a new catalog/revision, never as an in-place mutation during combat. Gameplay algorithms, numeric precision, RNG constants and format versions are technical contracts rather than balance knobs. No production balance fallback literal belongs in a handler: a missing required key fails catalog validation.
+
 Identifiers are immutable strings with explicit types at API boundaries (`PowerId`, `EnemyId`, etc.). Existing P001–P025 and I001 can remain stable identifiers; do not rename them merely to adopt a style. New IDs must be unique within a documented namespace. Use neither display names nor Unity asset GUIDs as save keys.
 
 Runtime instance IDs are different from definition IDs. Allocate actor/effect/item instances from durable scoped counters or deterministic identifiers; do not call wall-clock/random GUID generation during combat. External operation IDs may use independent UUIDs outside gameplay RNG.
@@ -149,6 +151,8 @@ A reward transaction can affect several lifetimes. One application coordinator c
 Use a bootstrap scene with one persistent `GameRoot`. It loads validated content, restores or creates a session, constructs adapters, then opens gameplay. Scene/view reconstruction must not create a second session or reset simulation. Dispose subscriptions when views close.
 
 Presenters translate user input into commands and read committed projections. Combat views map actor IDs to pooled visual objects. Presentation notifications may be sampled/coalesced for high attack rates; authoritative events, rewards and proc evaluation may not be dropped.
+
+All tunable interface quantities (sizes, spacing, scales, animation times, opacity, display thresholds and colors) are authored in interface-tuning ScriptableObjects referenced by presentation. Views request stable keys and fail validation when a required key is absent or has the wrong unit. Prefab structure and static art remain presentation assets; no UI measurement is allowed to become a combat rule. Interface assets are separate from the mechanical content hash so a visual adjustment cannot silently change saved gameplay.
 
 Use explicit presentation references keyed by content ID, and resolve missing art to development placeholders without changing mechanical content. Load/unload art by location and pool actors, hit indicators and VFX. Avoid per-hit disk writes, UI hierarchy rebuilds and allocations proportional to total lifetime event count.
 

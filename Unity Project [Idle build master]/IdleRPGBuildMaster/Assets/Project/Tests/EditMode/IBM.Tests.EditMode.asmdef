@@ -1,7 +1,7 @@
 {
   "name": "IBM.Tests.EditMode",
   "rootNamespace": "IBM.Tests.EditMode",
-  "references": ["IBM.Domain", "IBM.Application"],
+  "references": ["IBM.Domain", "IBM.Application", "IBM.Authoring", "IBM.Infrastructure"],
   "optionalUnityReferences": ["TestAssemblies"],
   "includePlatforms": ["Editor"],
   "overrideReferences": true,

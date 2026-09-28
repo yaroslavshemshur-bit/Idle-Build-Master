@@ -16,7 +16,7 @@
 | Increment | Deliverable | Required acceptance |
 |---|---|---|
 | T01 Foundation | Domain/Application assembly boundaries, identifiers, large-number implementation, version types, RNG/time interfaces and core test harness | Domain/Application compile with no Unity engine reference; RNG vectors, numbers beyond double range and numeric boundary tests pass |
-| T02 Content | Authoring assets, plain catalog compiler, manifest, typed registries and validator | Duplicate/missing IDs, unsupported effects, invalid probabilities and graph cycles fail with source paths; same inputs produce same mechanical hash |
+| T02 Content | Authoring assets, plain catalog compiler, manifest, typed registries and validator; balance and interface quantities authored in SO assets | Duplicate/missing IDs, unsupported effects, invalid probabilities and graph cycles fail with source paths; same inputs produce same mechanical hash; missing UI keys and invalid UI units fail validation |
 | T03 Session | Single writer, command envelope/results, state ownership, revision and transaction boundaries | Rejected commands leave state/RNG unchanged; duplicate commands do not double-apply; no UI needed |
 | T04 Simulation mechanics | Scheduler, stat graph, action/effect pipeline, actor lifecycle and serializable boss behavior | Partition invariance and same-time ordering tests; reaction continuations yield safely; synthetic effects exercise dependencies and stacks |
 | T05 Persistence foundation | Full snapshot DTO/codec/store, generations, migrations, current-balance rebase and safe-point capture | Crash/corruption/restore fixtures; identical continuation on unchanged rules/content; atomic validated transformation after updates |

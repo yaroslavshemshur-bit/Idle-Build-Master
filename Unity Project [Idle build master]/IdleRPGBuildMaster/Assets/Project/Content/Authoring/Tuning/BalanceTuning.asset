@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cdcfafdaa9a4681b24947f1ce1be381, type: 3}
+  m_Name: BalanceTuning
+  m_EditorClassIdentifier: IBM.Authoring::IBM.Authoring.BalanceTuningAsset
+  revision: balance-v1
+  parameters:
+  - id: offline.max_seconds
+    kind: 4
+    coefficient: 21600
+    exponent: 0
+  - id: offline.base_efficiency
+    kind: 3
+    coefficient: 5
+    exponent: -1
+  - id: offline.min_encounter_seconds
+    kind: 4
+    coefficient: 60
+    exponent: 0
+  - id: combat.min_damage.base
+    kind: 0
+    coefficient: 5
+    exponent: 0
+  - id: combat.min_damage.dex_factor
+    kind: 0
+    coefficient: 5
+    exponent: -1
+  - id: combat.max_damage.str_factor
+    kind: 0
+    coefficient: 2
+    exponent: 0
+  - id: combat.max_hp.base
+    kind: 0
+    coefficient: 20
+    exponent: 0
+  - id: combat.max_hp.vit_factor
+    kind: 0
+    coefficient: 100
+    exponent: 0
+  - id: combat.block.str_factor
+    kind: 0
+    coefficient: 1
+    exponent: -1
+  - id: combat.block.vit_factor
+    kind: 0
+    coefficient: 5
+    exponent: -1
+  - id: combat.block.reference
+    kind: 0
+    coefficient: 100
+    exponent: 0
+  - id: combat.accuracy.base
+    kind: 0
+    coefficient: 100
+    exponent: 0
+  - id: combat.evasion.base
+    kind: 0
+    coefficient: 100
+    exponent: 0
+  - id: combat.attack_speed.base_rating
+    kind: 0
+    coefficient: 1
+    exponent: 0
+  - id: combat.attack_speed.agi_factor
+    kind: 0
+    coefficient: 1
+    exponent: -2
+  - id: combat.attack_speed.rating_scale
+    kind: 0
+    coefficient: 2
+    exponent: 0
+  - id: combat.regen.base
+    kind: 0
+    coefficient: 1
+    exponent: 0
+  - id: combat.regen.vit_factor
+    kind: 0
+    coefficient: 1
+    exponent: -1
+  - id: combat.hit.min
+    kind: 0
+    coefficient: 5
+    exponent: -2
+  - id: combat.hit.max
+    kind: 0
+    coefficient: 95
+    exponent: -2

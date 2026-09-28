@@ -1,0 +1,6 @@
+{
+  "name": "IBM.Authoring",
+  "rootNamespace": "IBM.Authoring",
+  "references": ["IBM.Domain"],
+  "autoReferenced": true
+}

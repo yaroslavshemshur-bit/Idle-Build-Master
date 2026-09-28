@@ -1,0 +1,6 @@
+{
+  "name": "IBM.Infrastructure",
+  "rootNamespace": "IBM.Infrastructure",
+  "references": ["IBM.Domain", "IBM.Application"],
+  "autoReferenced": true
+}

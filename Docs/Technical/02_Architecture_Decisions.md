@@ -67,6 +67,11 @@ Do not ask the owner to choose class names, dependency-injection libraries or se
 - A11 selects rebasing to current balance. Rules for HP adjustment, modified effect durations and removed phase states are migration inputs; preserve the source save if an update supplies no valid transformation. This is not permission to reset or compensate the player arbitrarily.
 - The future administration interface manages supported content schemas. Whether future executable gameplay changes require an application update remains a technical design decision; remote data delivery alone does not imply arbitrary code updates.
 
+## Resolved implementation questions — owner, 2026-09-28
+
+- **D03 — fatal prevention:** apply the proposed HP loss first, then restore HP if a fatal-prevention effect succeeds. The action's committed damage and notification fields must reflect the final post-prevention outcome; saving is allowed only after the full action is resolved.
+- **D06 — downed hero:** while the hero is downed and regenerating, enemy attack timers, Boss phase timers and effects on enemies are paused. Enemy HP remains unchanged except for already-resolving actions; resume those clocks when the hero revives.
+
 ## Design ambiguities to resolve before dependent implementation
 
 These are findings, not corrections or newly locked rules.
@@ -75,10 +80,8 @@ These are findings, not corrections or newly locked rules.
 |---|---|---|
 | D01 | Run Progression cadence table places choices at encounters 43 and 72; Location 01 distinguishes unlocks at 43/72 from choices at 44/73 | Establish one authoritative milestone table, including later runs and Stage Compression |
 | D02 | Combat places conversions before derived multipliers; Eagle Eye uses Accuracy ×5 and Accuracy-to-Min-Damage conversion; Bulwark uses current Block | Define which resolved value each conversion reads and how temporary primary modifiers propagate into derived stats |
-| D03 | Combat damage pipeline applies HP damage before fatal prevention; priority tiers put prevention first | Define proposed damage, prevention, committed HP change and death/reaction order |
 | D04 | Powers use Attack Speed ×0.5 while Combat distinguishes rating from attacks/sec | Specify the target quantity for every speed modifier and behavior at very small rates |
 | D05 | Reactive Powers refer to a percentage of damage without defining the damage basis | Specify pre/post-mitigation damage, actual HP lost, overkill and reactive-damage eligibility |
-| D06 | Hero death preserves enemy HP; other enemy state and timers are incompletely specified | Define attacks, boss phase timers, enemy effects, DoTs and cooldowns during downed time |
 | D07 | Temporary combat stacks can support momentum over several minutes, but encounter-state lifetime is scoped to one encounter | Define carryover between encounters and clearing on stage/location changes |
 | D08 | Changing Vitality changes Max HP; timed enemy Vitality reduction already exists | Define current-HP adjustment on gain, loss and expiration; also equipment changes |
 | D09 | Power choices are progression rewards, but waiting behavior is unspecified | Define whether combat pauses, choices queue, offers persist, and what happens with an exhausted eligible pool |
@@ -87,6 +90,8 @@ These are findings, not corrections or newly locked rules.
 | D12 | Repeated boss farming and abandoning/switching fights are not fully specified | Define access, preserved fight state and repeat reward eligibility |
 | D13 | Stat achievement unlocks are named without exact thresholds or measurement semantics | Define observed values, temporary-buff eligibility and unlock timing |
 | D14 | Crit, DoT, AoE, summons, Collections, Prestige, Mastery and Challenges have direction but incomplete rules | Describe extension contracts now; require approved feature rules before implementing each extension |
+
+This document is the single implementation-question register. Add every newly found gameplay ambiguity here with source, affected feature and the specific decision needed. Do not scatter new questions across code comments or new question lists; game design will resolve this register later. Until resolution, dependent production content remains disabled rather than receiving a guessed rule.
 
 ## Editorial issues
 
@@ -117,4 +122,4 @@ Each specification must distinguish approved decisions, proposed defaults and un
 
 ## Review checkpoint
 
-Documentation-only specification. No gameplay or Unity implementation was changed. At the initial review the working tree was clean; the decision register, specifications and documentation cross-references are uncommitted changes. No compilation or gameplay tests apply to this documentation pass. See the current Git status for the full changed-file list.
+The initial review was documentation-only. Subsequent implementation added the T02–T08 foundations summarized in `01_Engineering_Handoff.md`; dependent production rules remain pending in this register. See the current Git status and latest handoff for verification and changed-file state.
