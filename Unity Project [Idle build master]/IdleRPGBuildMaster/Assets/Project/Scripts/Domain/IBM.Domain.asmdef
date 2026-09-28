@@ -1,0 +1,7 @@
+{
+  "name": "IBM.Domain",
+  "rootNamespace": "IBM.Domain",
+  "references": [],
+  "autoReferenced": true,
+  "noEngineReferences": true
+}

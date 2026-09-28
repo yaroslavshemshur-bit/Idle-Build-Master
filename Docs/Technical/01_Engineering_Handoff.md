@@ -49,3 +49,14 @@ Verification: <Unity compile / named tests / manual steps expected>
 ```
 
 At the end of each task, hand over: changed files, implementation decisions, verification actually run, remaining issues, and the next concrete step. Put lasting decisions in this file or a focused technical document; leave transient progress in the chat/PR summary.
+
+## T01 foundation implementation — 2026-09-28
+
+- Scope: `Assets/Project/Scripts/Domain`, `Scripts/Application`, and `Tests/EditMode` in the Unity project. The template scene and gameplay design were not changed.
+- Assemblies: `IBM.Domain` and `IBM.Application` have no Unity engine references; Application depends on Domain. The Edit Mode test assembly depends on both.
+- Stable references: ordinal `ContentId`, typed `DefinitionId<TKind>` for mechanical definitions, and a durable counter-based `InstanceIdSequence` for runtime instances. No display names or Unity GUIDs are save keys.
+- Numeric format v1: `GameNumber` stores a signed `BigInteger` coefficient rounded to 34 decimal digits (ties to even) and a checked `long` exponent. Zero is `(0,0)`; invariant coefficient/exponent strings are the intended DTO representation. Arithmetic does not convert the full value to `double`. Input is range checked at bounded conversion and simulation time boundaries.
+- RNG v1: PCG32 with explicit state and increment; seed derivation v1 uses FNV-1a 64 over little-endian root-seed bytes followed by the UTF-8 stream ID. Streams are created separately by their future owning systems. Version stamps keep save schema, simulation rules, numeric, RNG and content revisions distinct.
+- Time: signed microsecond `SimTime`, nonnegative `SimDuration`, midpoint-away-from-zero duration conversion and retained fractional microseconds for a real-time driver. Scheduling and gameplay policies belong to T04.
+- Verification: standalone .NET 9 compilation of all new Domain/Application C# files passed; a temporary smoke harness passed PCG32 reference outputs, large-number boundary checks, time checks and 160,801 small-integer arithmetic pairs. `git diff --check` passed. `unity editors list` returned no installed Editors; `unity --non-interactive test <project> --mode EditMode --output <project>/T01-test-results.xml --timeout 600` exited with `Editor 6000.6.0f1 (x86_64) is not installed. Re-run with --allow-install to install it automatically.` No Unity Editor compilation or Edit Mode test result was produced.
+- Next increment: T02 content catalog and validation. T03–T06 must still be implemented before the first Location is playable. Design dependencies D01–D14 in `02_Architecture_Decisions.md` remain unresolved where they affect production rules.
