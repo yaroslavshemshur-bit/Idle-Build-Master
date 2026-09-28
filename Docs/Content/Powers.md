@@ -1,6 +1,6 @@
 # Initial Implementation Powers
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-28  
 **Target:** First 25-Power reference-first implementation pool
 
@@ -355,268 +355,45 @@ It teaches one new combat relationship at a time.
 
 # Stat-achievement unlocks
 
-These Powers reward the player for using specific parts of the combat system.
+For the first reference-based Power set, use the Idle Superpowers achievement thresholds directly where the corresponding reference Power is achievement-gated.
 
-## P014 — Executioner's Instinct
+These thresholds use **total / fully resolved combat stats**, matching the reference wording.
 
-**Reference:** Fear Strength  
-**Initial effect:** Increase Strength by 20% for each missing 1% of the current primary enemy's Health.  
-**Reference unlock:** Strong Level 1  
-**Our unlock:** Strength Achievement I  
-**Family:** Strength / Execute Scaling  
-**Trade-off:** Weakest at full enemy HP; strongest near the kill.  
-**Multi-enemy adjustment:** Uses current primary target only.  
-**Implementation:** Dynamic Strength modifier based on target missing-HP percentage
+| Our achievement | Threshold | Unlock |
+|---|---:|---|
+| Strength Achievement I | 1,000 total Strength | P014 Executioner's Instinct / Fear Strength analogue |
+| Agility Achievement I | 1,000 total Agility | P016 Spider Instinct / Spider Power analogue |
+| Agility Achievement II | 10,000 total Agility | P015 Feline Grace / Cat Power analogue |
+| Accuracy Achievement I | 1,000 total Accuracy | P017 Eagle Eye |
+| Block Achievement I | 1,000 total Block | P018 Stone Form |
+| Block Achievement II | 10,000 total Block | P019 Spiked Armor |
+| Vitality Achievement I | 1,000 total Vitality | P020 Crippling Presence |
+| Vitality Achievement II | 10,000 total Vitality | P021 Calm Guard |
+| Regeneration Achievement III | 100,000 total Regeneration | P022 Healing Focus |
+| Dexterity Achievement IV | 1,000,000 total Dexterity | P023 Blood Drinker |
+| Evasion Achievement III | 100,000 total Evasion | P024 Mirror Veil |
+| Damage Taken Achievement II | 10,000 cumulative damage taken | P025 Radiation Curse |
 
-**Primary synergies:**
-- Giant's Might.
-- Force Grip.
-- Dragon Breath against armored bosses.
+### Measurement semantics
 
----
+Stat achievements observe the highest **fully resolved value actually reached** by the player.
 
-## P015 — Feline Grace
+Eligible sources include:
 
-**Reference:** Cat Power  
-**Initial effects:**
-- Agility ×5.
-- Max Damage ×5.
+- purchased primary stats;
+- Powers;
+- gear;
+- temporary buffs/stacks.
 
-**Reference unlock:** Fast Level 2  
-**Our unlock:** Agility Achievement II  
-**Family:** Agility / Max Damage  
-**Trade-off:** None  
-**Multi-enemy adjustment:** None  
-**Implementation:** Two stat multipliers
+The unlock check runs after the action/stat transition that produced the value is committed.
 
-**Primary synergies:**
-- Windstep.
-- Spider Instinct.
-- Future Agility/Evasion conversion Powers.
+Unlocks are permanent account progress.
 
----
+A newly unlocked Power does not mutate an already-generated Power offer; it enters eligibility for future offers or unresolved pending credits.
 
-## P016 — Spider Instinct
+For cumulative Damage Taken achievements, count `ResolvedDamage` from successful incoming damage actions, consistent with the project-wide generic “damage” basis. Fatal prevention may change the final HP state without erasing the resolved hit amount.
 
-**Reference:** Spider Power  
-**Initial effects:**
-- Agility ×3.
-- 10% chance on hit to multiply enemy Attack Speed by 0.5 for 1 second.
-- 10% chance on hit to multiply enemy Evasion by 0.5 for 1 second.
-
-**Reference unlock:** Fast Level 1  
-**Our unlock:** Agility Achievement I  
-**Family:** Agility / Debuff  
-**Trade-off:** None  
-**Multi-enemy adjustment:** Debuffs apply to the hit target. No change until AoE proc scope is introduced.  
-**Implementation:** Agility multiplier + two OnHit debuff rolls
-
-**Primary synergies:**
-- Windstep.
-- Stormbrand.
-- Feline Grace.
-
----
-
-## P017 — Eagle Eye
-
-**Reference:** Eagle Eyes  
-**Initial effects:**
-- Accuracy ×5.
-- Increase Min Damage by 20% of Accuracy.
-
-**Reference unlock:** Mr Level 1 / Accuracy achievement  
-**Our unlock:** Accuracy Achievement I  
-**Family:** Accuracy / Min Damage Conversion  
-**Trade-off:** None  
-**Multi-enemy adjustment:** None  
-**Implementation:** Accuracy multiplier + conversion
-
-**Primary synergies:**
-- Precision Training.
-- Battle Insight.
-- Blood Drinker.
-
----
-
-## P018 — Stone Form
-
-**Reference:** Stone Body  
-**Initial effects:**
-- Strength ×2.
-- Block ×5.
-- Attack Speed ×0.5.
-- Evasion ×0.5.
-- Regeneration ×0.25.
-
-**Reference unlock:** Blocky Level 1  
-**Our unlock:** Block Achievement I  
-**Family:** Block / Strength / Trade-off  
-**Trade-off:** Major reduction to Attack Speed, Evasion and Regeneration.  
-**Multi-enemy adjustment:** None directly; becomes more strategically valuable against many attackers.  
-**Implementation:** Five stat multipliers
-
-**Primary synergies:**
-- Spike Skin.
-- Flame Ward.
-- Ghost Step.
-- Pain-Forged Strength.
-
----
-
-## P019 — Spiked Armor
-
-**Reference:** Spike Skin  
-**Initial effect:** 50% chance to damage the source enemy for 50% of damage when getting hit.  
-**Reference unlock:** Blocky Level 2  
-**Our unlock:** Block Achievement II  
-**Family:** Reactive Damage  
-**Trade-off:** Requires being hit.  
-**Multi-enemy adjustment:** **Normalize/Test.** Incoming-hit frequency scales with enemy count.  
-**Implementation:** OnHitTaken → proc → counter damage
-
-**Primary synergies:**
-- Stone Form.
-- Flame Ward.
-- Iron Constitution.
-- Pain-Forged Strength.
-
----
-
-## P020 — Crippling Presence
-
-**Reference:** Cockroach Power  
-**Initial effects:**
-- Accuracy ×3.
-- Vitality ×0.5.
-- 50% chance on hit to multiply enemy Vitality by 0.75 for 3 seconds.
-
-**Reference unlock:** Healthy Level 1  
-**Our unlock:** Vitality Achievement I  
-**Family:** Accuracy / Enemy Vitality Debuff / Trade-off  
-**Trade-off:** Vitality ×0.5.  
-**Multi-enemy adjustment:** Debuff applies to the hit target.  
-**Implementation:** Two stat multipliers + timed enemy Vitality debuff
-
-**Primary synergies:**
-- Eagle Eye.
-- Precision Training.
-- High Attack Speed builds that keep the debuff active.
-
----
-
-## P021 — Calm Guard
-
-**Reference:** Calming  
-**Initial effects:**
-- Vitality ×2.
-- 50% chance when hit to multiply source enemy Attack Speed by 0.5 for 1 second.
-
-**Reference unlock:** Healthy Level 2  
-**Our unlock:** Vitality Achievement II  
-**Family:** Vitality / Defensive Debuff  
-**Trade-off:** None  
-**Multi-enemy adjustment:** **Normalize/Test.** Each attacker can independently trigger the slow against itself.  
-**Implementation:** Vitality multiplier + OnHitTaken source-enemy debuff
-
-**Primary synergies:**
-- Iron Constitution.
-- Stone Form.
-- Trickster Form / Domination.
-
----
-
-## P022 — Healing Focus
-
-**Reference:** Healing  
-**Initial effects:**
-- Vitality ×5.
-- Regeneration ×10.
-- Max Damage ×0.5.
-- Min Damage ×0.5.
-
-**Reference unlock:** Healer Level 3  
-**Our unlock:** Regeneration Achievement III  
-**Family:** Sustain / Major Trade-off  
-**Trade-off:** Both Min and Max Damage are halved.  
-**Multi-enemy adjustment:** None  
-**Implementation:** Four stat multipliers
-
-**Primary synergies:**
-- Iron Constitution.
-- Calm Guard.
-- Stone Form for extreme defense, with severe offensive cost.
-
----
-
-## P023 — Blood Drinker
-
-**Reference:** Matter Ingestion  
-**Initial effects:**
-- Vitality ×5.
-- Regeneration ×2.
-- 25% chance to heal for 10% of damage on hit.
-
-**Reference unlock:** Accurate Level 4  
-**Our unlock:** Dexterity Achievement IV  
-**Family:** Sustain / OnHit  
-**Trade-off:** None  
-**Multi-enemy adjustment:** No change in single-target prototype. AoE healing proc scope must be defined later.  
-**Implementation:** Two stat multipliers + OnHit heal proc
-
-**Primary synergies:**
-- Precision Training.
-- Eagle Eye.
-- Fast attack builds.
-
----
-
-## P024 — Mirror Veil
-
-**Reference:** Illusion Creation  
-**Initial effects:**
-- 10% chance that an attacking enemy attacks itself instead.
-- Evasion ×5.
-
-**Reference unlock:** Miss Level 3  
-**Our unlock:** Evasion Achievement III  
-**Family:** Evasion / Control  
-**Trade-off:** None  
-**Multi-enemy adjustment:** Source-enemy rule. **Normalize/Test** in group encounters.  
-**Implementation:** Evasion multiplier + incoming-attack replacement
-
-**Primary synergies:**
-- Windstep.
-- Trickster Form.
-- Domination.
-
----
-
-## P025 — Radiation Curse
-
-**Reference:** Radiation Body  
-**Initial effects:**
-- Regeneration ×0.2.
-- 100% chance to damage the source enemy for 50% of damage when getting hit.
-- 100% chance to ignore 50% of enemy Block.
-- On death, damage the current primary enemy for 200% Max Damage.
-
-**Reference unlock:** Ouch Level 2 / cumulative damage taken  
-**Our unlock:** Damage Taken Achievement II  
-**Family:** Death / Reactive Damage / Block Bypass  
-**Trade-off:** Regeneration ×0.2.  
-**Multi-enemy adjustment:** **High-priority Normalize/Test.** Reactive damage triggers per incoming hit; death damage remains single-target in v0.1.  
-**Implementation:** Regen modifier + OnHitTaken damage + block bypass + OnDeath damage
-
-**Primary synergies:**
-- Giant's Might.
-- Force Grip.
-- Ghost Step.
-- Stone Form can be either synergy or anti-synergy depending on whether the goal is survival or rapid death cycling.
-
-**Reference-known combo:** Super Strength + Telekinesis + Radiation Body is a documented early progression build in the reference community.
-
----
+Reference note: the public wiki directly confirms the thresholds for Strong/Fast/Healthy/Blocky/Mr/Healer/Accurate/Ouch and the matching Power unlocks. Evasion Achievement III follows the reference `Miss Level 3` unlock for Illusion Creation and the same ×10-per-level achievement progression pattern.
 
 # Initial unlock sequence
 
