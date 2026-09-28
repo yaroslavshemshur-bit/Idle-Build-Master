@@ -1,6 +1,6 @@
 # 00 — Reference Economy Baseline
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -390,7 +390,18 @@ GroupBudget(N) = SingleEnemyBudget × sqrt(N)
 Examples:
 
 | Enemies | Per-enemy budget | Total group budget |
-|## Encounter-owned EXP budget
+|---:|---:|---:|
+| 1 | 1.000× | 1.000× |
+| 2 | 0.707× | 1.414× |
+| 3 | 0.577× | 1.732× |
+| 4 | 0.500× | 2.000× |
+| 6 | 0.408× | 2.449× |
+
+This deliberately keeps groups more dangerous than a single enemy while avoiding a naive ×6 HP + ×6 DPS jump.
+
+Because enemies attack independently, reactive Powers still gain extra trigger frequency in groups and must be measured separately.
+
+## Encounter-owned EXP budget
 
 EXP reward is owned by the **encounter**, not multiplied by the number of visible enemies.
 
@@ -406,21 +417,26 @@ If rewards are evenly split among `N` initial enemies:
 EXP per enemy = B / N
 ```
 
-Example:
+Summoned/replacement enemies do not create EXP beyond the encounter budget unless explicitly authored.
 
-```
-Encounter EXP Budget = 20,000
-1 enemy  → 20,000
-5 enemies → 4,000 each
-```
+## Stage Compression reward behavior
 
-This prevents a six-enemy encounter from becoming an automatic ×6 EXP farm solely because it contains six targets.
+The first Location has an authored 100-slot baseline progression/reward curve.
 
-High-count encounters can still become efficient farming targets when the player's build clears them faster.
+Without compression, each required encounter consumes its corresponding slot.
 
-Summoned or replacement enemies do not create EXP beyond the encounter's assigned budget unless a content rule explicitly allocates additional reward.
+With Stage Compression:
 
-This is a locked first-implementation rule.
+- progression still crosses the same normalized 0..100 Location Progress range;
+- only physically completed encounters grant encounter rewards;
+- skipped baseline slots do **not** grant or redistribute their EXP;
+- a compressed Stage's remaining encounters sample the Stage's progress span in order, ending at that Stage's final reward profile.
+
+This intentionally means Stage Compression reduces mandatory combat **and mandatory EXP**.
+
+The player can recover more EXP by deliberately farming with Auto Push OFF.
+
+After a Stage is complete, repeat farming uses the Stage's **final/end-of-Stage reward profile** for every repeat encounter.
 
 ---:|---:|---:|
 | 1 | 1.000× | 1.000× |
