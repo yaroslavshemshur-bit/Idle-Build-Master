@@ -1,6 +1,6 @@
 # 00 — UI / UX Specification
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-28  
 **Platform:** Mobile  
 **Orientation:** Portrait
@@ -1504,47 +1504,69 @@ Exact availability depends on world progression implementation.
 
 # 25. Offline Rewards popup
 
-Shown on returning after eligible offline farming.
+Shown when returning after an eligible offline period that produced progress or rewards.
 
 ## Elements
 
-- time away;
-- configured farming target;
+- total time away;
+- rewarded time;
+- offline cap status if reached;
+- Offline Farm Target;
+- virtual encounter clears;
 - EXP earned;
 - items obtained;
 - future Collection progress;
 - notable rare drops.
 
+Baseline informational line:
+
+```
+Offline Efficiency: 50%
+Minimum encounter time: 60 sec
+```
+
+If the cap is reached:
+
+```
+Away: 11h 42m
+Rewarded: 6h
+Offline cap reached
+```
+
 ## Item summary
 
-Do not list 100 common items individually.
+Do not list large numbers of common items individually.
 
 Show grouped summary plus notable items.
 
 Example:
 
 ```
-12 items found
-1 Epic
-2 Rare
-9 Common/Uncommon
+63 items found
+1 Godlike
+5 Epic
+57 other
 ```
+
+Named items should always appear individually.
 
 CTA:
 
-- Claim / Continue;
+- Continue;
 - View Gear if notable items exist.
 
 ## Strategic limits
 
-Offline summary never claims that the game:
+Offline farming never:
 
-- chose a Power;
-- changed equipment;
-- changed stat allocation;
-- defeated an important new progression Boss automatically.
+- chooses a Power;
+- spends EXP;
+- equips gear;
+- changes the farming target;
+- advances World Progress;
+- defeats a required Boss.
 
----
+The active encounter resumes from its saved state after the offline reward transaction.
 
 # 26. Screen — Settings
 
@@ -2110,7 +2132,7 @@ The following are intentionally not locked by this specification:
 8. Achievement / Mastery screen layout.
 9. Monetization / Shop screens.
 10. Cloud-save/account UI.
-11. Exact offline-reward calculation and presentation volume.
+11. Exact inventory overflow presentation for large offline loot batches.
 12. Whether Bosses can be manually re-farmed after being defeated in the current run.
 13. Advanced PowerDex search/filter UI.
 14. Future loadouts / gear profiles.
