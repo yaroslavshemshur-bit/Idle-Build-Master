@@ -14,6 +14,42 @@ MonoBehaviour:
   m_EditorClassIdentifier: IBM.Authoring::IBM.Authoring.BalanceTuningAsset
   revision: balance-v1
   parameters:
+  - id: primary.start.strength
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.start.vitality
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.start.agility
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.start.dexterity
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.upgrade.cost.scale.strength
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.upgrade.cost.scale.vitality
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.upgrade.cost.scale.agility
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.upgrade.cost.scale.dexterity
+    kind: 1
+    coefficient: 1
+    exponent: 0
+  - id: primary.upgrade.cost.power
+    kind: 1
+    coefficient: 2
+    exponent: 0
   - id: offline.max_seconds
     kind: 4
     coefficient: 21600

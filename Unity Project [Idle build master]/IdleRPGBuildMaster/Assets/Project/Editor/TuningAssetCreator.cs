@@ -20,6 +20,7 @@ namespace IBM.Editor
             Ensure<GameContentAsset>("Assets/Project/Content/Authoring/GameContent.asset");
             EnsureOfflineBaseline();
             EnsureCombatBaseline();
+            EnsurePrimaryStatBaseline();
             AssetDatabase.SaveAssets();
         }
 
@@ -70,6 +71,20 @@ namespace IBM.Editor
             AddNumber(entries, "combat.death_regen.multiplier", "10", "0");
             AddNumber(entries, "combat.hit.min", "5", "-2");
             AddNumber(entries, "combat.hit.max", "95", "-2");
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void EnsurePrimaryStatBaseline()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(Folder + "/BalanceTuning.asset");
+            var serialized = new SerializedObject(asset);
+            var entries = serialized.FindProperty("parameters");
+            foreach (var stat in new[] { "strength", "vitality", "agility", "dexterity" })
+            {
+                AddIfMissing(entries, "primary.start." + stat, IBM.Domain.BalanceValueKind.Integer, "1", "0");
+                AddIfMissing(entries, "primary.upgrade.cost.scale." + stat, IBM.Domain.BalanceValueKind.Integer, "1", "0");
+            }
+            AddIfMissing(entries, "primary.upgrade.cost.power", IBM.Domain.BalanceValueKind.Integer, "2", "0");
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 

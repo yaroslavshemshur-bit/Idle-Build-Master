@@ -532,6 +532,88 @@ namespace IBM.Tests.EditMode
             Assert.That(restored.Random.Loot.State, Is.EqualTo(session.CaptureAtSafePoint().Random.Loot.State));
         }
 
+        [Test]
+        public void ManualEquipmentAndLockCommandsPreserveInventoryIdentity()
+        {
+            var itemId = new ContentId("test.item.weapon");
+            var catalog = new ContentCatalog(
+                new[] { new LocationDefinition(Location, new[] { Stage }) },
+                new[] { new StageDefinition(Stage, Location, new[] { Encounter }, 1, false) },
+                new[] { new EncounterDefinition(Encounter, new[] { Enemy }, GameNumber.One, default) },
+                new[] { new EnemyDefinition(Enemy, GameNumber.FromInt64(100), GameNumber.One,
+                    GameNumber.One, SimDuration.FromSeconds(1), Array.Empty<string>(), default) },
+                Array.Empty<EffectDefinition>(), Array.Empty<PowerDefinition>(),
+                new[] { new ItemDefinition(itemId, "weapon", Array.Empty<ContentId>()) },
+                Array.Empty<LootTableDefinition>(), Stage);
+            var versions = new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content");
+            var run = new RunState("run", Stage);
+            run.Inventory.Add(new ItemInstanceState { InstanceId = 1, DefinitionId = itemId, ItemLevel = 1 });
+            run.NextItemSequence = 2;
+            var session = new GameSession(new GameState(new AccountState("profile"), run,
+                new CombatState(), versions, SessionRandomState.Create(19), new OfflineAccountingState()), catalog);
+            Assert.That(session.Execute(new SetItemLockCommand("lock", 0, 1, true)).Status,
+                Is.EqualTo(CommandStatus.Applied));
+            Assert.That(session.Execute(new EquipItemCommand("equip", 1, 1)).Status,
+                Is.EqualTo(CommandStatus.Applied));
+            Assert.That(session.CaptureAtSafePoint().Run.EquippedItems["weapon"], Is.EqualTo(1UL));
+            Assert.That(session.CaptureAtSafePoint().Run.Inventory.Single().Locked, Is.True);
+            Assert.That(session.Execute(new EquipItemCommand("absent", 2, 2)).Reason, Is.EqualTo("ItemNotOwned"));
+            var codec = new UnityJsonSaveCodec();
+            var restored = codec.Decode(codec.Encode(session.CaptureAtSafePoint(), catalog), catalog, versions);
+            Assert.That(restored.Run.EquippedItems["weapon"], Is.EqualTo(1UL));
+            Assert.That(restored.Run.Inventory.Single().Locked, Is.True);
+            Assert.That(session.Execute(new UnequipItemCommand("unequip", 2, "weapon")).Status,
+                Is.EqualTo(CommandStatus.Applied));
+            Assert.That(session.CaptureAtSafePoint().Run.EquippedItems, Is.Empty);
+            Assert.That(session.CaptureAtSafePoint().Run.Inventory.Single().Locked, Is.True);
+        }
+
+        [Test]
+        public void PrimaryStatPurchasesUseAuthoredQuadraticCostAndRemainRevisioned()
+        {
+            var balance = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(
+                "Assets/Project/Content/Authoring/Tuning/BalanceTuning.asset").Compile();
+            var catalog = Catalog(balance);
+            var versions = new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content");
+            var state = new GameState(new AccountState("profile"), new RunState("run", Stage),
+                ClearedEncounter(Encounter), versions, SessionRandomState.Create(19), new OfflineAccountingState());
+            var session = new GameSession(state, catalog);
+            session.ResolveEncounterClear();
+            var firstRevision = session.ReadView().Revision;
+            var first = session.Execute(new BuyStatUpgradeCommand("str-1", firstRevision, PrimaryStatKind.Strength),
+                purchaseBalance: balance);
+            Assert.That(first.Status, Is.EqualTo(CommandStatus.Applied));
+            Assert.That(session.CaptureAtSafePoint().Run.Exp.ToBoundedDouble(), Is.EqualTo(9d));
+            Assert.That(session.Execute(new BuyStatUpgradeCommand("str-1", firstRevision, PrimaryStatKind.Strength),
+                purchaseBalance: balance).Status, Is.EqualTo(CommandStatus.AlreadyApplied));
+            Assert.That(session.Execute(new BuyStatUpgradeCommand("str-2", first.Revision, PrimaryStatKind.Strength),
+                purchaseBalance: balance).Status, Is.EqualTo(CommandStatus.Applied));
+            Assert.That(session.CaptureAtSafePoint().Run.Exp.ToBoundedDouble(), Is.EqualTo(5d));
+            var primary = PrimaryStatProgression.Resolve(session.CaptureAtSafePoint().Run, balance);
+            Assert.That(primary.Strength.ToBoundedDouble(), Is.EqualTo(3d));
+            Assert.That(primary.Vitality.ToBoundedDouble(), Is.EqualTo(1d));
+            var codec = new UnityJsonSaveCodec();
+            var restored = codec.Decode(codec.Encode(session.CaptureAtSafePoint(), catalog), catalog, versions);
+            Assert.That(restored.Run.PurchasedStats[PrimaryStatProgression.Id(PrimaryStatKind.Strength)], Is.EqualTo(2));
+
+            var live = new GameSession(new GameState(restored.Account, restored.Run,
+                new CombatState(Encounter, new SimTime(0), new[]
+                {
+                    new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
+                        Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive },
+                    new ActorState { InstanceId = 2, DefinitionId = Enemy, Hp = GameNumber.FromInt64(100),
+                        MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive }
+                }), versions, restored.Random, restored.Offline), catalog);
+            long liveRevision = live.ReadView().Revision;
+            Assert.That(live.Execute(new BuyStatUpgradeCommand("vit-live", liveRevision, PrimaryStatKind.Vitality),
+                purchaseBalance: balance).Reason, Is.EqualTo("LiveStatPolicyRequired"));
+            Assert.That(live.ReadView().Revision, Is.EqualTo(liveRevision));
+            var transition = new RecordingPrimaryTransition();
+            Assert.That(live.Execute(new BuyStatUpgradeCommand("vit-live", liveRevision, PrimaryStatKind.Vitality),
+                purchaseBalance: balance, primaryStatTransition: transition).Status, Is.EqualTo(CommandStatus.Applied));
+            Assert.That(transition.Applied, Is.True);
+        }
+
         private static CombatState ClearedEncounter(ContentId id) => new CombatState(id, new SimTime(0), new[]
         {
             new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
@@ -621,6 +703,19 @@ namespace IBM.Tests.EditMode
                 {
                     new ItemInstanceState { DefinitionId = _item, ItemLevel = _invalid ? 0 : 1 }
                 });
+            }
+        }
+
+        private sealed class RecordingPrimaryTransition : IPrimaryStatTransitionPolicy
+        {
+            public bool Applied { get; private set; }
+            public void Apply(GameState before, GameState after, PrimaryStatKind changedStat)
+            {
+                Applied = true;
+                var hero = after.Combat.Actors.Single(actor => actor.IsHero);
+                hero.MaxHp = GameNumber.FromInt64(110);
+                hero.Hp = CombatMath.RebaseCurrentHp(hero.Hp, before.Combat.Actors.Single(actor => actor.IsHero).MaxHp,
+                    hero.MaxHp);
             }
         }
     }

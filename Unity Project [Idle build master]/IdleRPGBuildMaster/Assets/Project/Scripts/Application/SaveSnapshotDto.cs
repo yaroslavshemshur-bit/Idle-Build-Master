@@ -200,6 +200,9 @@ namespace IBM.Application
         {
             if (state.Revision < 0 || !catalog.Stages.ContainsKey(state.Run.SelectedStageId)) throw new InvalidOperationException("Invalid saved run state.");
             if (state.Account.CompletedRunCount < 0) throw new InvalidOperationException("Invalid completed-run count.");
+            foreach (var purchase in state.Run.PurchasedStats)
+                if (!PrimaryStatProgression.IsKnownId(purchase.Key) || purchase.Value < 0)
+                    throw new InvalidOperationException("Invalid purchased primary stat: " + purchase.Key);
             foreach (var pair in state.Run.StageRequiredClears)
                 if (!catalog.Stages.TryGetValue(pair.Key, out var stage) || stage.IsBossStage ||
                     pair.Value < 0 || pair.Value > stage.BaseRequiredEncounters)
@@ -237,15 +240,20 @@ namespace IBM.Application
                 if (!catalog.Powers.ContainsKey(power) || !state.Account.UnlockedPowers.Contains(power))
                     throw new InvalidOperationException("Unknown or locked owned Power: " + power);
             var itemIds = new HashSet<ulong>();
+            var itemsById = new Dictionary<ulong, ItemInstanceState>();
             foreach (var item in state.Run.Inventory)
+            {
                 if (item.InstanceId == 0 || item.InstanceId >= state.Run.NextItemSequence ||
                     !itemIds.Add(item.InstanceId) || !catalog.Items.ContainsKey(item.DefinitionId) ||
                     item.ItemLevel < 1 || item.AffixIds == null)
                     throw new InvalidOperationException("Invalid saved item instance.");
+                itemsById.Add(item.InstanceId, item);
+            }
             if (state.Run.NextItemSequence == 0)
                 throw new InvalidOperationException("Saved item sequence is zero.");
             foreach (var slot in state.Run.EquippedItems)
-                if (string.IsNullOrWhiteSpace(slot.Key) || !itemIds.Contains(slot.Value))
+                if (string.IsNullOrWhiteSpace(slot.Key) || !itemsById.TryGetValue(slot.Value, out var item) ||
+                    !StringComparer.Ordinal.Equals(catalog.Items[item.DefinitionId].Slot, slot.Key))
                     throw new InvalidOperationException("Invalid equipped item reference.");
             if (state.Run.PendingPowerOffer.Count == 0)
             {

@@ -47,7 +47,7 @@ namespace IBM.Application
         public List<ContentId> PendingPowerOffer { get; }
         public ContentId ActivePowerOfferMilestoneId { get; internal set; }
         public List<ItemInstanceState> Inventory { get; }
-        public ulong NextItemSequence { get; internal set; } = 1;
+        public ulong NextItemSequence { get; set; } = 1;
         public Dictionary<string, ulong> EquippedItems { get; }
         public RunState(string runId, ContentId firstStage)
         {
@@ -274,6 +274,37 @@ namespace IBM.Application
         public ContentId PowerId { get; }
         public ChoosePowerCommand(string operationId, long expectedRevision, ContentId powerId)
             : base(operationId, expectedRevision) => PowerId = powerId;
+    }
+    public sealed class SetItemLockCommand : GameCommand
+    {
+        public ulong ItemInstanceId { get; }
+        public bool Locked { get; }
+        public SetItemLockCommand(string operationId, long expectedRevision, ulong itemInstanceId, bool locked)
+            : base(operationId, expectedRevision) { ItemInstanceId = itemInstanceId; Locked = locked; }
+    }
+    public sealed class EquipItemCommand : GameCommand
+    {
+        public ulong ItemInstanceId { get; }
+        public EquipItemCommand(string operationId, long expectedRevision, ulong itemInstanceId)
+            : base(operationId, expectedRevision) => ItemInstanceId = itemInstanceId;
+    }
+    public sealed class UnequipItemCommand : GameCommand
+    {
+        public string Slot { get; }
+        public UnequipItemCommand(string operationId, long expectedRevision, string slot)
+            : base(operationId, expectedRevision) => Slot = slot;
+    }
+    public sealed class BuyStatUpgradeCommand : GameCommand
+    {
+        public PrimaryStatKind Stat { get; }
+        public BuyStatUpgradeCommand(string operationId, long expectedRevision, PrimaryStatKind stat)
+            : base(operationId, expectedRevision) => Stat = stat;
+    }
+
+    // Live gear changes can alter HP and attack speed. Their combat transition is supplied explicitly.
+    public interface IEquipmentTransitionPolicy
+    {
+        void Apply(GameState before, GameState after, string changedSlot);
     }
 
     // The selection rule is injected until normal offer size and weighting are authored.
@@ -587,13 +618,14 @@ namespace IBM.Application
             return _state.Copy();
         }
 
-        public CommandResult Execute(GameCommand command)
+        public CommandResult Execute(GameCommand command, IEquipmentTransitionPolicy equipmentTransition = null,
+            BalanceCatalog purchaseBalance = null, IPrimaryStatTransitionPolicy primaryStatTransition = null)
         {
             if (command == null) throw new ArgumentNullException(nameof(command));
             if (_state.RecentOperationIds.Contains(command.OperationId)) return new CommandResult(CommandStatus.AlreadyApplied, _state.Revision, "DuplicateOperation");
             if (command.ExpectedRevision != _state.Revision) return new CommandResult(CommandStatus.Rejected, _state.Revision, "StaleRevision");
             var draft = _state.Copy();
-            string reason = Apply(draft, command);
+            string reason = Apply(draft, command, equipmentTransition, purchaseBalance, primaryStatTransition);
             if (reason != null) return new CommandResult(CommandStatus.Rejected, _state.Revision, reason);
             draft.Revision = checked(draft.Revision + 1);
             draft.RecentOperationIds.Add(command.OperationId);
@@ -602,7 +634,8 @@ namespace IBM.Application
             return new CommandResult(CommandStatus.Applied, _state.Revision, "");
         }
 
-        private string Apply(GameState draft, GameCommand command)
+        private string Apply(GameState draft, GameCommand command, IEquipmentTransitionPolicy equipmentTransition,
+            BalanceCatalog purchaseBalance, IPrimaryStatTransitionPolicy primaryStatTransition)
         {
             if (command is SetAutoPushCommand autoPush)
             {
@@ -637,7 +670,57 @@ namespace IBM.Application
                 draft.Run.ActivePowerOfferMilestoneId = default;
                 return null;
             }
+            if (command is SetItemLockCommand itemLock)
+            {
+                var item = FindItem(draft.Run, itemLock.ItemInstanceId);
+                if (item == null) return "ItemNotOwned";
+                item.Locked = itemLock.Locked;
+                return null;
+            }
+            if (command is BuyStatUpgradeCommand buy)
+            {
+                if (!Enum.IsDefined(typeof(PrimaryStatKind), buy.Stat)) return "UnknownPrimaryStat";
+                if (purchaseBalance == null) return "StatBalanceRequired";
+                if (draft.Combat.Active && primaryStatTransition == null) return "LiveStatPolicyRequired";
+                var id = PrimaryStatProgression.Id(buy.Stat);
+                draft.Run.PurchasedStats.TryGetValue(id, out long previous);
+                if (previous < 0 || previous == long.MaxValue) return "StatPurchaseLimit";
+                long next = previous + 1;
+                var cost = PrimaryStatProgression.Cost(buy.Stat, next, purchaseBalance);
+                if (draft.Run.Exp.CompareTo(cost) < 0) return "InsufficientExp";
+                draft.Run.Exp = draft.Run.Exp.Subtract(cost);
+                draft.Run.PurchasedStats[id] = next;
+                if (draft.Combat.Active) primaryStatTransition.Apply(_state.Copy(), draft, buy.Stat);
+                return null;
+            }
+            if (command is EquipItemCommand equip)
+            {
+                var item = FindItem(draft.Run, equip.ItemInstanceId);
+                if (item == null) return "ItemNotOwned";
+                if (!_catalog.Items.TryGetValue(item.DefinitionId, out var definition)) return "UnknownItemDefinition";
+                string slot = definition.Slot;
+                if (draft.Combat.Active && equipmentTransition == null) return "LiveEquipmentPolicyRequired";
+                draft.Run.EquippedItems[slot] = item.InstanceId;
+                if (draft.Combat.Active) equipmentTransition.Apply(_state.Copy(), draft, slot);
+                return null;
+            }
+            if (command is UnequipItemCommand unequip)
+            {
+                if (string.IsNullOrWhiteSpace(unequip.Slot) || !draft.Run.EquippedItems.ContainsKey(unequip.Slot))
+                    return "SlotNotEquipped";
+                if (draft.Combat.Active && equipmentTransition == null) return "LiveEquipmentPolicyRequired";
+                draft.Run.EquippedItems.Remove(unequip.Slot);
+                if (draft.Combat.Active) equipmentTransition.Apply(_state.Copy(), draft, unequip.Slot);
+                return null;
+            }
             return "UnsupportedCommand";
+        }
+
+        private static ItemInstanceState FindItem(RunState run, ulong instanceId)
+        {
+            if (instanceId == 0) return null;
+            foreach (var item in run.Inventory) if (item.InstanceId == instanceId) return item;
+            return null;
         }
 
         private ProgressMilestone FindMilestone(ContentId id)
