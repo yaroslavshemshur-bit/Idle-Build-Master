@@ -1070,7 +1070,7 @@ Avoid architectural assumptions that:
 - multipliers stay near 1;
 - only a few timed stacks exist.
 
-Exact transition to a large-number representation is not required now, but serialization, formatting and calculation code should not make that future change unnecessarily painful.
+**Owner update, 2026-09-28:** a large-number representation is required from the first implementation, not a later transition. Serialization, formatting and calculation must use the numeric contract in `04_Simulation_Contracts.md` §5.
 
 ---
 
@@ -1327,11 +1327,12 @@ These are **not MVP requirements**, but they are established design directions.
 
 # 49. Things that should explicitly NOT be generalized yet
 
+**Scope update, 2026-09-28:** asynchronous PvP is now an approved future direction. The final run build is captured at reset for arena fights against saved player builds. The later server phase requires connectivity and progression validation. Plan snapshot and authority boundaries now; implementation remains staged. See `02_Architecture_Decisions.md` A02, A03 and A07. This supersedes the previous classification of PvP as speculative; it does not request real-time multiplayer synchronization.
+
 Avoid building full frameworks for systems that remain speculative.
 
 Do not prematurely implement:
 
-- PvP;
 - multiplayer/network synchronization;
 - guilds;
 - gacha;
@@ -1339,7 +1340,7 @@ Do not prematurely implement:
 - crafting;
 - procedural world generation;
 - complex quest graphs;
-- server-authoritative combat;
+- full server-authoritative combat infrastructure before the validation strategy is specified;
 - positional/grid combat;
 - skill trees;
 - character roster systems.

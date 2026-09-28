@@ -51,6 +51,11 @@ Planned next:
 
 - [00 — Architecture Requirements & Future-Proofing](Technical/00_Architecture_Requirements.md)
 - [01 — Engineering Baseline & Chat Handoff](Technical/01_Engineering_Handoff.md)
+- [02 — Architecture Scope & Decision Register](Technical/02_Architecture_Decisions.md)
+- [03 — System Architecture](Technical/03_System_Architecture.md)
+- [04 — Simulation Contracts](Technical/04_Simulation_Contracts.md)
+- [05 — Persistence & Services](Technical/05_Persistence_and_Services.md)
+- [06 — Implementation & Verification](Technical/06_Implementation_and_Verification.md)
 
 ### Production
 
