@@ -4,7 +4,7 @@
 
 ## Where to work
 
-- Git root: this repository (`Idle-Build-Master/`). The parent directory is not a Git repository. Start new Codex chats with this Git root as the project/work directory so `AGENTS.md` applies.
+- Git root: this repository (`Idle-Build-Master/`). The parent directory is not a Git repository. Prefer this Git root as the project/work directory for new Codex chats; its tracked `AGENTS.md` then applies directly. The local parent workspace also has a short `AGENTS.md` pointer.
 - Unity project: `Unity Project [Idle build master]/IdleRPGBuildMaster/`.
 - Editor version pinned by `ProjectSettings/ProjectVersion.txt`: **6000.6.0f1**. Open this exact project folder in Unity Hub.
 - Current implementation: a Unity 2D template with `SampleScene` and its welcome asset. Gameplay systems, gameplay tests and assembly definitions for game code have not been added yet.
@@ -15,6 +15,7 @@
 - `Docs/README.md` maps the design and records its decision policy. Game design and content live under `Docs/GameDesign/`, `Docs/Content/` and `Docs/Economy/`.
 - `Docs/Technical/00_Architecture_Requirements.md` is the authoritative technical requirement set. Refer to its section numbers when making architecture decisions. It states capabilities, not a prescribed class diagram or package layout.
 - Technical tasks implement agreed rules. If a rule is missing or contradictory, record the assumption or question explicitly; do not promote it to a design decision in code.
+- If the task lacks a material outcome, behavior, scope or acceptance condition, ask one focused clarification before broad document searches or coding. If design rules are needed but the prompt gives neither behavior nor a source, ask which rule to implement. Do not use a repository-wide read to guess unstated requirements.
 - The first complete integration target is the Location 1 loop in architecture requirement **§47**. Future directions in **§48** are compatibility constraints, not current feature requests; **§49** lists systems not to build yet.
 
 ## Implementation constraints to carry into each relevant task
