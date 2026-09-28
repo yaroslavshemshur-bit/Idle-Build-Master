@@ -82,14 +82,20 @@ Keep a bounded diagnostic ring for command/revision, action lineage, RNG positio
 
 ## 6. Design dependency handling
 
-The register in document 02 is a traceability mechanism. For an affected production feature, report: missing rule, source documents, affected handler/schema field and which tests cannot have a meaningful expected result yet. Do not reopen unrelated game design as a prerequisite to technical documentation.
+The PvE questions D01–D14 in document 02 are now resolved for the current implementation baseline.
 
-Examples:
+Implementation should use the approved rules and their owning design documents rather than synthetic production defaults.
 
-- D02 requires explicit source-stage reads for conversions; implement graph machinery now, configure real conversions only after semantics are resolved.
-- D06 requires downed-time policy; implement independent actor clocks and policy input now.
-- D11 requires inventory overflow; implement an explicit acquisition outcome now, do not silently destroy an item on overflow.
-- Future arena rules are deferred; implement snapshot isolation/provenance contracts without selecting victory conditions.
+Future Arena/PvP rules, advanced permanent progression, later combat families and future inventory caps are explicitly **Later** and do not block T01–T09 work that does not implement those features.
+
+If a new ambiguity affects current approved content, add it to document 02 with:
+
+- source documents;
+- affected feature;
+- exact missing rule;
+- blocked tests/handlers.
+
+Do not promote a Later feature into a current dependency merely because the architecture exposes an extension point for it.
 
 ## 7. Verification of this documentation delivery
 
