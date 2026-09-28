@@ -86,6 +86,10 @@ MonoBehaviour:
     kind: 0
     coefficient: 1
     exponent: -1
+  - id: combat.death_regen.multiplier
+    kind: 0
+    coefficient: 10
+    exponent: 0
   - id: combat.hit.min
     kind: 0
     coefficient: 5

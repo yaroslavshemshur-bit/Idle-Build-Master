@@ -98,6 +98,38 @@ namespace IBM.Domain
             return copy;
         }
 
+        // Suspended events keep their original keys and are absent from the active heap.
+        // They can be resumed after a known pause duration without consuming new sequence IDs.
+        public ScheduledEvent[] SuspendPending(Func<ScheduledEvent, bool> predicate)
+        {
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+            var pending = CapturePending();
+            _heap.Clear();
+            var suspended = new List<ScheduledEvent>();
+            foreach (var entry in pending)
+            {
+                if (predicate(entry)) suspended.Add(entry);
+                else Push(entry);
+            }
+            return suspended.ToArray();
+        }
+
+        public void ResumePending(IReadOnlyList<ScheduledEvent> suspended, SimDuration delay)
+        {
+            if (suspended == null) throw new ArgumentNullException(nameof(suspended));
+            var keys = new HashSet<ulong>();
+            foreach (var entry in _heap) keys.Add(entry.Sequence);
+            foreach (var entry in suspended)
+            {
+                if (entry.Sequence == 0 || entry.Sequence >= _nextSequence || !keys.Add(entry.Sequence) ||
+                    entry.Due.Add(delay).CompareTo(Now) < 0)
+                    throw new ArgumentException("Invalid suspended scheduler entry.", nameof(suspended));
+            }
+            foreach (var entry in suspended)
+                Push(new ScheduledEvent(entry.Due.Add(delay), entry.PhasePriority, entry.Sequence,
+                    entry.Kind, entry.Owner, entry.OwnerRevision, entry.DefinitionId));
+        }
+
         // Used by explicit clock policies such as freezing enemy clocks during hero downed time.
         public void ShiftPending(Func<ScheduledEvent, bool> predicate, SimDuration delay)
         {

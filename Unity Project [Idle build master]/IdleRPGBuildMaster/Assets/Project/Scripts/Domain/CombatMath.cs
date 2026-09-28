@@ -32,32 +32,32 @@ namespace IBM.Domain
         }
     }
 
+    public readonly struct DamageResolution
+    {
+        public GameNumber ResolvedDamage { get; }
+        public GameNumber ProposedHp { get; }
+        public GameNumber FinalHp { get; }
+        public GameNumber ActualHpLost { get; }
+        public bool FatalPreventionApplied { get; }
+        public DamageResolution(GameNumber resolvedDamage, GameNumber proposedHp, GameNumber finalHp,
+            GameNumber actualHpLost, bool fatalPreventionApplied)
+        {
+            ResolvedDamage = resolvedDamage; ProposedHp = proposedHp; FinalHp = finalHp;
+            ActualHpLost = actualHpLost; FatalPreventionApplied = fatalPreventionApplied;
+        }
+    }
+
     // Only the approved baseline formulas. Power conversions and temporary layers require D02.
     public static class CombatMath
     {
         public static DerivedStats Baseline(PrimaryAttributes primary, BalanceCatalog balance)
         {
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
-            var minDamage = N(balance, "combat.min_damage.base").Add(primary.Dexterity.Multiply(N(balance, "combat.min_damage.dex_factor")));
-            var maxDamage = minDamage.Add(primary.Strength.Multiply(N(balance, "combat.max_damage.str_factor")));
-            var maxHp = N(balance, "combat.max_hp.base").Add(primary.Vitality.Multiply(N(balance, "combat.max_hp.vit_factor")));
-            var block = primary.Strength.Multiply(N(balance, "combat.block.str_factor"))
-                .Add(primary.Vitality.Multiply(N(balance, "combat.block.vit_factor")));
-            var accuracy = N(balance, "combat.accuracy.base").Add(primary.Dexterity);
-            var evasion = N(balance, "combat.evasion.base").Add(primary.Agility);
-            var rating = N(balance, "combat.attack_speed.base_rating")
-                .Add(primary.Agility.Multiply(N(balance, "combat.attack_speed.agi_factor")));
-            var scaledRating = rating.Multiply(N(balance, "combat.attack_speed.rating_scale"));
-            if (scaledRating.CompareTo(GameNumber.Zero) <= 0) throw new InvalidOperationException("Attack speed rating must be positive.");
-            double rate = scaledRating.Log2();
-            if (double.IsNaN(rate) || double.IsInfinity(rate) || rate <= 0)
-                throw new InvalidOperationException("Attack speed cannot be represented by the current rule.");
-            var regen = N(balance, "combat.regen.base").Add(primary.Vitality.Multiply(N(balance, "combat.regen.vit_factor")));
-            return new DerivedStats(minDamage, maxDamage, maxHp, block, accuracy, evasion, regen, rate);
+            return new CombatStatResolver(primary, balance, null).ResolveDerived();
         }
 
         public static SimDuration AttackInterval(DerivedStats stats)
         {
+            if (stats.AttacksPerSecond <= 0d) throw new InvalidOperationException("Actor cannot attack at zero attack speed.");
             double microseconds = 1000000d / stats.AttacksPerSecond;
             if (double.IsNaN(microseconds) || double.IsInfinity(microseconds) || microseconds < 1d)
                 throw new NotSupportedException("Attack interval below one simulation microsecond requires an exact aggregation resolver.");
@@ -90,6 +90,39 @@ namespace IBM.Domain
             if (reference.CompareTo(GameNumber.Zero) <= 0) throw new InvalidOperationException("Block reference must be positive.");
             return damage.Multiply(reference.Divide(effectiveBlock.Add(reference)));
         }
+
+        public static GameNumber RebaseCurrentHp(GameNumber currentHp, GameNumber oldMaxHp, GameNumber newMaxHp)
+        {
+            if (oldMaxHp.CompareTo(GameNumber.Zero) <= 0 || newMaxHp.CompareTo(GameNumber.Zero) < 0 ||
+                currentHp.CompareTo(GameNumber.Zero) < 0 || currentHp.CompareTo(oldMaxHp) > 0)
+                throw new ArgumentOutOfRangeException(nameof(currentHp));
+            return GameNumber.Min(newMaxHp, GameNumber.Max(GameNumber.Zero,
+                currentHp.Divide(oldMaxHp).Multiply(newMaxHp)));
+        }
+
+        // Resolve mitigation before HP clamping. The prevention callback sees the post-damage proposal
+        // and may replace the final HP; no state is committed until this transaction returns.
+        public static DamageResolution ResolveDamage(GameNumber outgoingDamage, GameNumber effectiveBlock,
+            GameNumber currentHp, GameNumber maxHp, BalanceCatalog balance,
+            Func<DamageResolution, GameNumber?> fatalPrevention = null)
+        {
+            if (currentHp.CompareTo(GameNumber.Zero) < 0 || currentHp.CompareTo(maxHp) > 0 ||
+                maxHp.CompareTo(GameNumber.Zero) <= 0) throw new ArgumentOutOfRangeException(nameof(currentHp));
+            var resolved = ApplyBlock(outgoingDamage, effectiveBlock, balance);
+            var proposedHp = GameNumber.Max(GameNumber.Zero, currentHp.Subtract(resolved));
+            var proposal = new DamageResolution(resolved, proposedHp, proposedHp,
+                currentHp.Subtract(proposedHp), false);
+            if (!proposedHp.IsZero || fatalPrevention == null) return proposal;
+            var replacement = fatalPrevention(proposal);
+            if (!replacement.HasValue) return proposal;
+            if (replacement.Value.CompareTo(GameNumber.Zero) <= 0 || replacement.Value.CompareTo(maxHp) > 0)
+                throw new InvalidOperationException("Fatal prevention must restore HP within (0, MaxHP].");
+            return new DamageResolution(resolved, proposedHp, replacement.Value,
+                GameNumber.Max(GameNumber.Zero, currentHp.Subtract(replacement.Value)), true);
+        }
+
+        public static GameNumber DeathRegenerationPerSecond(DerivedStats stats, BalanceCatalog balance) =>
+            stats.RegenPerSecond.Multiply(N(balance, "combat.death_regen.multiplier"));
 
         private static GameNumber N(BalanceCatalog balance, string id) =>
             balance.Require(new ContentId(id), BalanceValueKind.Number).Number;

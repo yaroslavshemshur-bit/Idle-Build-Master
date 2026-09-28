@@ -13,7 +13,23 @@ namespace IBM.Authoring
         public GameNumber Compile() => GameNumber.Parse(coefficient, exponent);
     }
 
-    [Serializable] public sealed class LocationRecord { public string id; public string[] stageIds = Array.Empty<string>(); }
+    [Serializable] public sealed class ProgressMilestoneRecord
+    {
+        public string id;
+        public int point;
+        public ProgressMilestoneKind kind;
+        public string rewardId;
+        public bool firstRunOnly;
+        public string[] fixedOfferOptionIds = Array.Empty<string>();
+    }
+    [Serializable] public sealed class LocationRecord
+    {
+        public string id;
+        public string[] stageIds = Array.Empty<string>();
+        public int progressUnits = 100;
+        public int progressStageCount = 10;
+        public ProgressMilestoneRecord[] milestones = Array.Empty<ProgressMilestoneRecord>();
+    }
     [Serializable] public sealed class StageRecord { public string id; public string locationId; public string[] encounterIds = Array.Empty<string>(); public int baseRequiredEncounters; public bool isBossStage; }
     [Serializable] public sealed class EnemyRecord
     {
@@ -52,6 +68,7 @@ namespace IBM.Authoring
     {
         public int schemaVersion = 1;
         public string contentVersion = "content-v1";
+        public string startingStageId;
         public LocationRecord[] locations = Array.Empty<LocationRecord>();
         public StageRecord[] stages = Array.Empty<StageRecord>();
         public EncounterRecord[] encounters = Array.Empty<EncounterRecord>();
@@ -61,7 +78,7 @@ namespace IBM.Authoring
         public ItemRecord[] items = Array.Empty<ItemRecord>();
         public LootTableRecord[] lootTables = Array.Empty<LootTableRecord>();
 
-        public ContentCatalog Compile(ISet<EffectOperation> supportedOperations = null)
+        public ContentCatalog Compile(ISet<EffectOperation> supportedOperations = null, BalanceCatalog balance = null)
         {
             if (schemaVersion != 1 || string.IsNullOrWhiteSpace(contentVersion))
                 throw new InvalidOperationException(SourceLabel + ": unsupported content schema or version.");
@@ -69,7 +86,9 @@ namespace IBM.Authoring
             for (int i = 0; i < effects.Length; i++)
                 if (effects[i] != null && (supportedOperations == null || !supportedOperations.Contains(effects[i].operation)))
                     throw new InvalidOperationException(SourceLabel + ": unsupported effect operation at effects[" + i + "]: " + effects[i].operation);
-            var locationDefs = Convert(locations, "location", x => new LocationDefinition(Id(x.id), Ids(x.stageIds)));
+            var locationDefs = Convert(locations, "location", x => new LocationDefinition(Id(x.id), Ids(x.stageIds),
+                x.progressUnits, Convert(x.milestones, "milestone", m => new ProgressMilestone(Id(m.id), m.point,
+                    m.kind, OptionalId(m.rewardId), m.firstRunOnly, Ids(m.fixedOfferOptionIds))), x.progressStageCount));
             var stageDefs = Convert(stages, "stage", x => new StageDefinition(Id(x.id), Id(x.locationId), Ids(x.encounterIds), x.baseRequiredEncounters, x.isBossStage));
             var encounterDefs = Convert(encounters, "encounter", x => new EncounterDefinition(Id(x.id), Ids(x.enemyIds), x.expBudget.Compile(), OptionalId(x.lootTableId)));
             var enemyDefs = Convert(enemies, "enemy", x => new EnemyDefinition(Id(x.id), x.maxHp.Compile(), x.minDamage.Compile(), x.maxDamage.Compile(), SimDuration.FromSeconds(x.attackIntervalSeconds), x.tags, OptionalId(x.behaviorId)));
@@ -77,7 +96,8 @@ namespace IBM.Authoring
             var powerDefs = Convert(powers, "power", x => new PowerDefinition(Id(x.id), Ids(x.effectIds)));
             var itemDefs = Convert(items, "item", x => new ItemDefinition(Id(x.id), x.slot, Ids(x.effectIds)));
             var lootDefs = Convert(lootTables, "loot table", x => new LootTableDefinition(Id(x.id), Convert(x.entries, "loot entry", e => new LootEntry(Id(e.itemId), e.weight))));
-            try { return new ContentCatalog(locationDefs, stageDefs, encounterDefs, enemyDefs, effectDefs, powerDefs, itemDefs, lootDefs); }
+            try { return new ContentCatalog(locationDefs, stageDefs, encounterDefs, enemyDefs, effectDefs, powerDefs, itemDefs, lootDefs,
+                Id(startingStageId), balance); }
             catch (Exception error) when (error is ArgumentException || error is InvalidOperationException)
             { throw new InvalidOperationException(SourceLabel + ": content catalog validation failed: " + error.Message, error); }
         }

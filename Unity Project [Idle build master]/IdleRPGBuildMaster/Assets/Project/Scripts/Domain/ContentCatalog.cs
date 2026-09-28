@@ -9,7 +9,23 @@ namespace IBM.Domain
     {
         public ContentId Id { get; }
         public IReadOnlyList<ContentId> StageIds { get; }
-        public LocationDefinition(ContentId id, IReadOnlyList<ContentId> stageIds) { Id = id; StageIds = Copy(stageIds); }
+        public int ProgressUnits { get; }
+        public int ProgressStageCount { get; }
+        public IReadOnlyList<ProgressMilestone> Milestones { get; }
+        public LocationDefinition(ContentId id, IReadOnlyList<ContentId> stageIds, int progressUnits = 100,
+            IReadOnlyList<ProgressMilestone> milestones = null, int progressStageCount = 0)
+        {
+            if (progressUnits <= 0) throw new ArgumentOutOfRangeException(nameof(progressUnits));
+            Id = id; StageIds = Copy(stageIds); ProgressUnits = progressUnits;
+            ProgressStageCount = progressStageCount == 0 ? StageIds.Count : progressStageCount;
+            if (ProgressStageCount <= 0 || ProgressStageCount > StageIds.Count)
+                throw new ArgumentOutOfRangeException(nameof(progressStageCount));
+            Milestones = Copy(milestones ?? Array.Empty<ProgressMilestone>());
+            var ids = new HashSet<ContentId>();
+            foreach (var milestone in Milestones)
+                if (milestone.Point > progressUnits || !ids.Add(milestone.Id))
+                    throw new ArgumentException("Invalid or duplicate location milestone: " + milestone.Id);
+        }
         internal static IReadOnlyList<T> Copy<T>(IReadOnlyList<T> source)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -136,18 +152,25 @@ namespace IBM.Domain
         public IReadOnlyDictionary<ContentId, ItemDefinition> Items { get; }
         public IReadOnlyDictionary<ContentId, LootTableDefinition> LootTables { get; }
         public string MechanicalHash { get; }
+        public string BalanceHash { get; }
+        public ContentId StartingStageId { get; }
 
         public ContentCatalog(IEnumerable<LocationDefinition> locations, IEnumerable<StageDefinition> stages,
             IEnumerable<EncounterDefinition> encounters, IEnumerable<EnemyDefinition> enemies,
             IEnumerable<EffectDefinition> effects, IEnumerable<PowerDefinition> powers,
-            IEnumerable<ItemDefinition> items, IEnumerable<LootTableDefinition> lootTables)
+            IEnumerable<ItemDefinition> items, IEnumerable<LootTableDefinition> lootTables,
+            ContentId startingStageId, BalanceCatalog balance = null)
         {
+            if (string.IsNullOrEmpty(startingStageId.Value)) throw new ArgumentException("Starting Stage is required.", nameof(startingStageId));
+            StartingStageId = startingStageId;
             Locations = Map(locations, x => x.Id, "location"); Stages = Map(stages, x => x.Id, "stage");
             Encounters = Map(encounters, x => x.Id, "encounter"); Enemies = Map(enemies, x => x.Id, "enemy");
             Effects = Map(effects, x => x.Id, "effect"); Powers = Map(powers, x => x.Id, "power");
             Items = Map(items, x => x.Id, "item"); LootTables = Map(lootTables, x => x.Id, "loot table");
             ValidateReferences();
-            MechanicalHash = ComputeHash();
+            if (!Stages.ContainsKey(StartingStageId)) throw new ArgumentException("Starting Stage is missing: " + StartingStageId);
+            BalanceHash = balance?.MechanicalHash;
+            MechanicalHash = ComputeHash(BalanceHash);
         }
 
         private static IReadOnlyDictionary<ContentId, T> Map<T>(IEnumerable<T> values, Func<T, ContentId> id, string kind)
@@ -165,10 +188,25 @@ namespace IBM.Domain
         private void ValidateReferences()
         {
             foreach (var location in Locations.Values)
-                foreach (var id in location.StageIds)
+                for (int index = 0; index < location.StageIds.Count; index++)
                 {
+                    var id = location.StageIds[index];
                     if (!Stages.TryGetValue(id, out var stage) || stage.LocationId != location.Id)
                         throw new ArgumentException("Location " + location.Id + " has missing or foreign stage " + id);
+                    if (index < location.ProgressStageCount && stage.IsBossStage)
+                        throw new ArgumentException("Boss Stage cannot occupy a normalized progress slot: " + id);
+                }
+            var milestoneIds = new HashSet<ContentId>();
+            foreach (var location in Locations.Values)
+                foreach (var milestone in location.Milestones)
+                {
+                    if (!milestoneIds.Add(milestone.Id))
+                        throw new ArgumentException("Duplicate milestone ID across Locations: " + milestone.Id);
+                    if (milestone.Kind == ProgressMilestoneKind.UnlockPower && !Powers.ContainsKey(milestone.RewardId))
+                        throw new ArgumentException("Location " + location.Id + " milestone " + milestone.Id + " has missing Power " + milestone.RewardId);
+                    foreach (var option in milestone.FixedOfferOptions)
+                        if (!Powers.ContainsKey(option))
+                            throw new ArgumentException("Location " + location.Id + " milestone " + milestone.Id + " has missing offer Power " + option);
                 }
             foreach (var stage in Stages.Values)
             {
@@ -214,10 +252,25 @@ namespace IBM.Domain
             marks[id] = 2;
         }
 
-        private string ComputeHash()
+        private string ComputeHash(string balanceHash)
         {
             var text = new StringBuilder();
-            foreach (var value in Locations.Values) { text.Append("L|").Append(value.Id); foreach (var id in value.StageIds) text.Append('|').Append(id); text.Append('\n'); }
+            if (!string.IsNullOrEmpty(balanceHash)) text.Append("B|").Append(balanceHash).Append('\n');
+            text.Append("START|").Append(StartingStageId).Append('\n');
+            foreach (var value in Locations.Values)
+            {
+                text.Append("L|").Append(value.Id).Append('|').Append(value.ProgressUnits).Append('|').Append(value.ProgressStageCount);
+                foreach (var id in value.StageIds) text.Append('|').Append(id);
+                var milestones = new List<ProgressMilestone>(value.Milestones);
+                milestones.Sort((left, right) => left.Id.CompareTo(right.Id));
+                foreach (var milestone in milestones)
+                {
+                    text.Append("|M:").Append(milestone.Id).Append(':').Append(milestone.Point).Append(':')
+                        .Append((int)milestone.Kind).Append(':').Append(milestone.RewardId).Append(':').Append(milestone.FirstRunOnly);
+                    foreach (var option in milestone.FixedOfferOptions) text.Append(':').Append(option);
+                }
+                text.Append('\n');
+            }
             foreach (var value in Stages.Values) { text.Append("S|").Append(value.Id).Append('|').Append(value.LocationId).Append('|').Append(value.BaseRequiredEncounters).Append('|').Append(value.IsBossStage); foreach (var id in value.EncounterIds) text.Append('|').Append(id); text.Append('\n'); }
             foreach (var value in Encounters.Values) { text.Append("C|").Append(value.Id).Append('|').Append(value.ExpBudget).Append('|').Append(value.LootTableId); foreach (var id in value.EnemyIds) text.Append('|').Append(id); text.Append('\n'); }
             foreach (var value in Enemies.Values) { text.Append("N|").Append(value.Id).Append('|').Append(value.MaxHp).Append('|').Append(value.MinDamage).Append('|').Append(value.MaxDamage).Append('|').Append(value.AttackInterval.Microseconds).Append('|').Append(value.BehaviorId); foreach (var tag in value.Tags) text.Append('|').Append(tag); text.Append('\n'); }

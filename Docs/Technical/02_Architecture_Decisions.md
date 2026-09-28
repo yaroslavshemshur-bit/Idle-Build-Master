@@ -96,6 +96,14 @@ This resolves the current PvE implementation-question register.
 
 New ambiguities found during implementation should be added here only when they affect current approved content. Future-feature questions should be marked **Later** rather than blocking current work.
 
+## New implementation question for game design
+
+| ID | Source / issue | Decision needed |
+|---|---|---|
+| D15 | `Docs/Economy/00_Reference_Economy_Baseline.md` says compressed encounters sample the Stage's ten baseline reward slots in order and end at its final profile, but does not specify which slots are selected when only `R < 10` physical encounters remain. Different round-up/round-nearest/explicit tables yield different EXP and loot. | Specify the exact slot mapping for each compressed `R` (1–10), or approve a formula. The normalized milestone crossing implementation does not depend on this choice; compressed reward selection remains pending. |
+| D16 | Combat defines paused enemy clocks and hero recovery while downed, but does not state whether the hero's own pending attack resumes with its remaining readiness or starts a fresh interval after revival. | Choose `PauseRemaining` or `RestartOnRevive`. The timeline requires this policy as an explicit input and stores the selected policy in downed saves; no production default is active. |
+| D17 | Combat says targets are chosen automatically but does not define the ordinary multi-enemy target order or tie-break. | Define the baseline target-selection rule. The timeline accepts an injected target policy; the test-only first-opponent selector is not production behavior. |
+
 ## Editorial cleanup status
 
 The previously noted stale `Run Level`, deferred Block-formula wording and malformed multi-enemy economy table are resolved in the current design-document pass.

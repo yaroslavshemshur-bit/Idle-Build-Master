@@ -67,6 +67,7 @@ namespace IBM.Editor
             AddNumber(entries, "combat.attack_speed.rating_scale", "2", "0");
             AddNumber(entries, "combat.regen.base", "1", "0");
             AddNumber(entries, "combat.regen.vit_factor", "1", "-1");
+            AddNumber(entries, "combat.death_regen.multiplier", "10", "0");
             AddNumber(entries, "combat.hit.min", "5", "-2");
             AddNumber(entries, "combat.hit.max", "95", "-2");
             serialized.ApplyModifiedPropertiesWithoutUndo();
