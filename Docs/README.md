@@ -32,12 +32,12 @@ Planned next:
 ### Content
 
 - [Powers](Content/Powers.md)
-- [Location 01 — Mechanical & Balance Baseline](Content/Location_01_Mechanical_Baseline.md)
+- [Items](Content/Items.md)
+- [Location 01 — Goblin Outskirts / Goblin Camp](Content/Location_01_Mechanical_Baseline.md)
 
 Planned next:
 
 - Enemies
-- Items
 
 ### Economy
 
