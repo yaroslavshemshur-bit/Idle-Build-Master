@@ -1,6 +1,6 @@
 # 05 — Gear
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -75,6 +75,72 @@ A normal item is described by:
 
 This creates continuous loot variation without requiring every drop to be authored manually.
 
+## Item Level
+
+For the first Location:
+
+```
+ItemLevel = reference-equivalent level of the source
+```
+
+There is no additional Item Level RNG in the first implementation.
+
+Examples:
+
+- gear unlock area → around Item Level 10;
+- mid-Location drops → around Item Level 30–40;
+- Stage 8 → around Item Level 50–56;
+- Stage 10 / Boss → up to Item Level 70.
+
+Later permanent progression may increase effective item level or source quality, but the first Location uses the source level directly.
+
+## Affix magnitude
+
+First calibration baseline:
+
+```
+AffixPower = max(1, round(ItemLevel / 5))
+```
+
+Primary affixes:
+
+```
+STR = +AffixPower
+VIT = +AffixPower
+AGI = +AffixPower
+DEX = +AffixPower
+```
+
+Derived affixes use:
+
+| Affix | Formula |
+|---|---:|
+| Min Damage | +0.75 × AffixPower |
+| Max Damage | +3.0 × AffixPower |
+| Max Health | +150 × AffixPower |
+| Regen/sec | +0.15 × AffixPower |
+| Accuracy | +1.5 × AffixPower |
+| Evasion | +1.5 × AffixPower |
+| Block | +0.75 × AffixPower |
+| Attack Speed Rating | +0.015 × AffixPower |
+
+These derived values are intentionally stronger in their narrow domain than the equivalent primary-stat contribution because primary stats improve multiple combat outcomes simultaneously.
+
+Example at Item Level 70:
+
+```
+AffixPower = 14
+STR / VIT / AGI / DEX = +14
+Min Damage = +10.5
+Max Damage = +42
+Max Health = +2100
+Regen/sec = +2.1
+Accuracy = +21
+Evasion = +21
+Block = +10.5
+Attack Speed Rating = +0.21
+```
+
 ## Named build-defining gear
 
 Some rare items are authored items with fixed or partially fixed mechanics.
@@ -106,12 +172,42 @@ First implementation uses a readable rarity ladder close to the reference direct
 5. Legendary
 6. Godlike
 
-Rarity may influence:
+For the first implementation, rarity determines **affix count**:
 
-- number of affixes;
-- allowed affix tiers;
-- numerical roll quality;
-- probability of unusual combinations.
+| Rarity | Affix count |
+|---|---:|
+| Common | 1 |
+| Uncommon | 2 |
+| Rare | 3 |
+| Epic | 4 |
+| Legendary | 5 |
+| Godlike | 6 |
+
+Rarity does **not** multiply the numerical strength of an affix.
+
+Affix magnitude is determined primarily by Item Level.
+
+The first affix on every ordinary procedural item is always one of the four primary attributes:
+
+- Strength;
+- Vitality;
+- Agility;
+- Dexterity.
+
+Additional affixes can roll from the full first-implementation pool:
+
+- Strength;
+- Vitality;
+- Agility;
+- Dexterity;
+- Min Damage;
+- Max Damage;
+- Max Health;
+- Regeneration;
+- Accuracy;
+- Evasion;
+- Block;
+- Attack Speed Rating.
 
 Rarity should **not** mean that a higher-rarity item is automatically correct for every build.
 
@@ -276,19 +372,65 @@ Baseline timing:
 - gear drops begin around the normalized reference level-10 milestone;
 - from that point onward, all six slots can drop.
 
-It should include:
+### Procedural drop chances
+
+After gear is unlocked:
+
+```
+Normal encounter procedural gear chance = 20%
+Stage 8 Elite procedural gear chance = 35%
+Boss procedural gear drop = guaranteed
+```
+
+Normal / Elite procedural rarity table:
+
+| Rarity | Chance |
+|---|---:|
+| Common | 60% |
+| Uncommon | 25% |
+| Rare | 10% |
+| Epic | 4% |
+| Legendary | 0.9% |
+| Godlike | 0.1% |
+
+Boss guaranteed procedural rarity table:
+
+| Rarity | Chance |
+|---|---:|
+| Rare | 60% |
+| Epic | 30% |
+| Legendary | 9% |
+| Godlike | 1% |
+
+The Boss therefore never drops Common or Uncommon gear from its guaranteed procedural reward.
+
+This gives the first Boss a visibly better loot profile without making Legendary/Godlike routine.
+
+### First named farm item
+
+Stage 8 Hobgoblin Guard has an independent named-item roll:
+
+```
+Hobgoblin Bulwark drop chance = 5%
+```
+
+This roll is separate from the Stage 8 procedural 35% gear roll.
+
+The item is defined in `Docs/Content/Items.md`.
+
+The first Location includes:
 
 - drops across all six slots;
-- simple procedural affixes;
+- procedural affixes;
 - item comparison;
 - manual equip;
 - item locking;
 - conservative Auto Equip;
-- at least one memorable named / Boss-target item if content scope allows.
+- one explicit targeted named-item farm source.
 
-Exact item tables are defined together with first-Location content.
+Exact slot weighting and later-location loot tables remain open.
 
-## Locked decisions from v0.1
+## Locked decisions from v0.3
 
 1. Gear primarily drops from combat rather than being shop-first.
 2. All six equipment slots are available immediately.
@@ -302,15 +444,23 @@ Exact item tables are defined together with first-Location content.
 10. Most gear initially resets with the run.
 11. Permanent progression later increases gear retention.
 12. Specific content can have targetable item drop tables.
+13. Common through Godlike use 1 through 6 affixes respectively.
+14. The first affix on an ordinary item is always a primary stat; later affixes use the 12-stat first-implementation pool.
+15. Rarity does not increase affix magnitude; Item Level controls affix magnitude.
+16. First-Location Item Level equals source reference-equivalent level.
+17. First-Location AffixPower is max(1, round(ItemLevel / 5)).
+18. Normal encounter procedural gear chance is 20% after gear unlock.
+19. Stage 8 Elite procedural gear chance is 35%.
+20. Normal/Elite rarity chances are 60/25/10/4/0.9/0.1% from Common through Godlike.
+21. First Boss guarantees one procedural item with Rare/Epic/Legendary/Godlike chances of 60/30/9/1%.
+22. Stage 8 Hobgoblin Guard has a separate 5% named-item roll for Hobgoblin Bulwark.
 
 ## Open questions
 
-1. Exact affix library.
-2. Exact item-level scaling.
-3. Exact rarity probabilities.
-4. Exact rarity-to-affix-count relationship.
-5. Whether named items can also roll random affixes.
-6. Initial inventory capacity / overflow behavior.
-7. Sell / salvage behavior.
-8. Exact retained-gear progression.
-9. First Location item table.
+1. Whether named items can also roll random procedural affixes.
+2. Initial inventory capacity / overflow behavior.
+3. Sell / salvage behavior.
+4. Exact retained-gear progression.
+5. Exact slot weighting / slot biases.
+6. Whether defeated Bosses can be repeatedly farmed within the same run.
+7. Later-location rarity and Item Level progression.
