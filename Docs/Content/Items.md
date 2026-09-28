@@ -1,6 +1,6 @@
 # Items
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -74,6 +74,8 @@ This means many players will discover the concept naturally, while players who s
 
 ### Procedural affixes on named items
 
-Whether Hobgoblin Bulwark also rolls normal procedural affixes is intentionally unresolved.
+Hobgoblin Bulwark does **not** roll ordinary procedural affixes in the first implementation.
 
-The locked identity of the item is its unique Block → Max Damage conversion.
+It is a predictable targeted named drop whose identity is its unique Block → Max Damage conversion.
+
+Future named items may explicitly opt into hybrid fixed + procedural affixes if authored that way.
