@@ -43,15 +43,19 @@ These product decisions are approved. Their implementation details remain to be 
 
 Do not ask the owner to choose class names, dependency-injection libraries or serialization packages before these product decisions are settled. Technical proposals should follow the required behavior.
 
-## Deferred design dependencies — not the current task
+## Later design dependencies — do not block current PvE implementation
 
-**Owner scope clarification:** this task is technical specification only. Do not solicit or define new gameplay or PvP rules. The following are future feature-design dependencies, not questions the owner must answer to complete the architecture. Represent their boundaries in contracts; do not enable dependent features with guessed rules.
+The following are explicitly **Later**.
 
-1. **Arena starting state:** permanent build composition versus temporary battle buffs/stacks at reset; full HP and fresh timers versus current combat condition. The full PvE combat save and arena build snapshot are distinct concepts.
-2. **Arena ending rules:** PvE normally revives indefinitely. Define PvP victory, eligibility of revive Powers and stalemate/timeout behavior explicitly.
-3. **Arena snapshot replacement:** automatically replace with the latest reset build, or retain/select older snapshots? Only capture at reset is approved so far.
-4. **Transition to server validation:** decide whether legacy local saves may enter competitive play, and under what migration/validation rules. A client-created save is not proof of legitimately earned progress.
-5. **Offline inventory overflow:** the farm formula, eligibility, target fallback, cap and reward semantics are now defined in game design. Inventory overflow handling for large reward batches remains open.
+They must not block implementation of the current PvE game, first Location, saves, offline farming or core buildcraft.
+
+1. **Arena / PvP starting state.**
+2. **Arena / PvP ending and stalemate rules.**
+3. **Arena snapshot replacement / history policy.**
+4. **Competitive transition to server validation and treatment of legacy local saves.**
+5. **Future inventory caps / overflow**, if a hard cap is introduced later. MVP has no hard inventory capacity.
+
+Implement only the already-defined extension boundaries needed to avoid architectural lock-in. Do not build Arena gameplay now.
 
 ## Technical consequences to specify
 
@@ -72,34 +76,34 @@ Do not ask the owner to choose class names, dependency-injection libraries or se
 - **D03 — fatal prevention:** apply the proposed HP loss first, then restore HP if a fatal-prevention effect succeeds. The action's committed damage and notification fields must reflect the final post-prevention outcome; saving is allowed only after the full action is resolved.
 - **D06 — downed hero:** while the hero is downed and regenerating, enemy attack timers, Boss phase timers and effects on enemies are paused. Enemy HP remains unchanged except for already-resolving actions; resume those clocks when the hero revives.
 
-## Design ambiguities to resolve before dependent implementation
+## Resolved gameplay implementation decisions — 2026-09-28
 
-These are findings, not corrections or newly locked rules.
+The following rules are now approved for current PvE implementation.
 
-| ID | Sources / issue | Decision or clarification required |
-|---|---|---|
-| D01 | Run Progression cadence table places choices at encounters 43 and 72; Location 01 distinguishes unlocks at 43/72 from choices at 44/73 | Establish one authoritative milestone table, including later runs and Stage Compression |
-| D02 | Combat places conversions before derived multipliers; Eagle Eye uses Accuracy ×5 and Accuracy-to-Min-Damage conversion; Bulwark uses current Block | Define which resolved value each conversion reads and how temporary primary modifiers propagate into derived stats |
-| D04 | Powers use Attack Speed ×0.5 while Combat distinguishes rating from attacks/sec | Specify the target quantity for every speed modifier and behavior at very small rates |
-| D05 | Reactive Powers refer to a percentage of damage without defining the damage basis | Specify pre/post-mitigation damage, actual HP lost, overkill and reactive-damage eligibility |
-| D07 | Temporary combat stacks can support momentum over several minutes, but encounter-state lifetime is scoped to one encounter | Define carryover between encounters and clearing on stage/location changes |
-| D08 | Changing Vitality changes Max HP; timed enemy Vitality reduction already exists | Define current-HP adjustment on gain, loss and expiration; also equipment changes |
-| D09 | Power choices are progression rewards, but waiting behavior is unspecified | Define whether combat pauses, choices queue, offers persist, and what happens with an exhausted eligible pool |
-| D10 | Normalized reference economy has a per-reference-enemy hypothesis and a 100-encounter location | Define exact encounter EXP allocation, repeat-farming level and Stage Compression reward behavior |
-| D11 | Gear explicitly leaves inventory capacity, overflow, disposal and named-item affixes open | Define acquisition when full, lock versus reset retention, and safe auto-equip comparison |
-| D12 | Repeated boss farming and abandoning/switching fights are not fully specified | Define access, preserved fight state and repeat reward eligibility |
-| D13 | Stat achievement unlocks are named without exact thresholds or measurement semantics | Define observed values, temporary-buff eligibility and unlock timing |
-| D14 | Crit, DoT, AoE, summons, Collections, Prestige, Mastery and Challenges have direction but incomplete rules | Describe extension contracts now; require approved feature rules before implementing each extension |
+| ID | Resolution |
+|---|---|
+| D01 | Milestones use normalized Location Progress. First-Location authoritative points are 2, 14, 28, 43 unlock, 44 first-run-only choice, 57, 72 unlock, 73 normal choice, 86, 100. Stage Compression reduces physical fights but not milestone positions; crossed milestones resolve in ascending order. |
+| D02 | Temporary/permanent is lifetime, not a math layer. Conversions read fully resolved source stats and are added before the receiving stat's own multiplier. Stat dependency cycles require explicit custom resolution or validation failure. |
+| D03 | Fatal prevention resolves inside the action transaction after proposed damage; the final HP transition is committed only after prevention has resolved. |
+| D04 | `Attack Speed ×X` multiplies Attack Speed Rating before the reference logarithmic attacks/sec conversion. Direct gear additions also modify rating before conversion. No project 30 APS hard cap. |
+| D05 | Generic “% of damage” effects use post-mitigation `ResolvedDamage` before current-HP clamping/fatal prevention. `ActualHpLost` is separate. Reactive-origin damage does not recursively trigger generic reflect/counter effects unless explicitly allowed. |
+| D06 | While hero is downed, enemy attack clocks, Boss phase clocks, enemy timed effects and enemy regeneration pause; hero Death Regeneration continues. |
+| D07 | Hero temporary buffs/stacks persist across encounter/Stage/location transitions by default while their duration permits; death clears them. Enemy-bound state disappears with the enemy. Effects may explicitly declare EncounterBound. |
+| D08 | MaxHP changes preserve current HP percentage. The rebase does not itself emit Damage/Heal/Death events. |
+| D09 | Generated Power offers are stored durably, never rerolled by UI/save-load, and queue in order. A choice with eligible options blocks simulation; an empty-pool choice remains a non-blocking pending credit until something unlocks. |
+| D10 | EXP uses encounter-owned rewards. Stage Compression skips rewards for skipped baseline encounters; no compensation is granted. Repeat farming uses the final/end-of-Stage reward profile. |
+| D11 | MVP inventory has no hard capacity/overflow. Lock and reset retention are separate. Auto Equip only performs strict context-free dominance swaps; unique/triggered/conditional items require manual review. Named items do not roll procedural affixes unless explicitly authored to. |
+| D12 | Required Location Boss reward is once per run. Deliberately navigating away from an unfinished encounter abandons it without rewards; returning starts a fresh encounter. Death/save-load/offline absence do not count as abandonment. |
+| D13 | Reference-based achievement thresholds are copied for the current Power set; stat achievements observe fully resolved reached values and unlock permanently. Cumulative Damage Taken uses the project's resolved-damage basis. |
+| D14 | Future Crit/DoT/AoE/Summon/Collections/Prestige/Mastery/Challenges are Later unless already required by current content. Each future mechanic must define event eligibility, targeting, stat/damage basis, stacking/lifetime, save state, offline policy and UI before production content uses it. |
 
-This document is the single implementation-question register. Add every newly found gameplay ambiguity here with source, affected feature and the specific decision needed. Do not scatter new questions across code comments or new question lists; game design will resolve this register later. Until resolution, dependent production content remains disabled rather than receiving a guessed rule.
+This resolves the current PvE implementation-question register.
 
-## Editorial issues
+New ambiguities found during implementation should be added here only when they affect current approved content. Future-feature questions should be marked **Later** rather than blocking current work.
 
-- Combat still mentions `Run Level` among values retained on death, although Run Progression explicitly says there is no XP-driven Run Level.
-- Combat's later Block subsection says the formula is deferred, while the baseline section supplies an implementation-default formula.
-- Economy's multi-enemy normalization table is interrupted by the encounter-owned EXP section and does not form a valid contiguous Markdown table.
+## Editorial cleanup status
 
-These should be reconciled with the owner-approved rules rather than treated as permission to redesign gameplay.
+The previously noted stale `Run Level`, deferred Block-formula wording and malformed multi-enemy economy table are resolved in the current design-document pass.
 
 ## Intended specification deliverables
 
