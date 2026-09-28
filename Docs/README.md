@@ -47,6 +47,10 @@ Planned next:
 
 - Balance Principles
 
+### UI / UX
+
+- [00 — UI / UX Specification](UI/00_UI_UX_Specification.md)
+
 ### Technical
 
 - [00 — Architecture Requirements & Future-Proofing](Technical/00_Architecture_Requirements.md)
