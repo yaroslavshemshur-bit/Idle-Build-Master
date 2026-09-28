@@ -47,6 +47,7 @@ namespace IBM.Application
         public List<ContentId> PendingPowerOffer { get; }
         public ContentId ActivePowerOfferMilestoneId { get; internal set; }
         public List<ItemInstanceState> Inventory { get; }
+        public ulong NextItemSequence { get; internal set; } = 1;
         public Dictionary<string, ulong> EquippedItems { get; }
         public RunState(string runId, ContentId firstStage)
         {
@@ -76,6 +77,7 @@ namespace IBM.Application
             PendingPowerOffer = new List<ContentId>(other.PendingPowerOffer);
             ActivePowerOfferMilestoneId = other.ActivePowerOfferMilestoneId;
             Inventory = new List<ItemInstanceState>(other.Inventory.Count);
+            NextItemSequence = other.NextItemSequence;
             foreach (var item in other.Inventory) Inventory.Add(item.Copy());
             EquippedItems = new Dictionary<string, ulong>(other.EquippedItems, StringComparer.Ordinal);
         }
@@ -321,15 +323,40 @@ namespace IBM.Application
         public bool Applied { get; }
         public long Revision { get; }
         public GameNumber ExpGranted { get; }
+        public IReadOnlyList<ItemInstanceState> ItemsGranted { get; }
         public IReadOnlyList<ProgressMilestone> Milestones { get; }
         public bool StageCompleted { get; }
         public ContentId SelectedStageId { get; }
         public EncounterClearResult(bool applied, long revision, GameNumber expGranted,
-            IReadOnlyList<ProgressMilestone> milestones, bool stageCompleted, ContentId selectedStageId)
+            IReadOnlyList<ItemInstanceState> itemsGranted, IReadOnlyList<ProgressMilestone> milestones,
+            bool stageCompleted, ContentId selectedStageId)
         {
             Applied = applied; Revision = revision; ExpGranted = expGranted;
-            Milestones = milestones; StageCompleted = stageCompleted; SelectedStageId = selectedStageId;
+            ItemsGranted = itemsGranted; Milestones = milestones;
+            StageCompleted = stageCompleted; SelectedStageId = selectedStageId;
         }
+    }
+
+    public sealed class EncounterRewardPlan
+    {
+        public GameNumber ExpGranted { get; }
+        public IReadOnlyList<ItemInstanceState> Items { get; }
+        public EncounterRewardPlan(GameNumber expGranted, IReadOnlyList<ItemInstanceState> items)
+        {
+            if (expGranted.CompareTo(GameNumber.Zero) < 0) throw new ArgumentOutOfRangeException(nameof(expGranted));
+            ExpGranted = expGranted;
+            var copied = new List<ItemInstanceState>();
+            if (items != null)
+                foreach (var item in items)
+                    copied.Add(item?.Copy() ?? throw new ArgumentException("Reward item is null.", nameof(items)));
+            Items = copied.AsReadOnly();
+        }
+    }
+
+    // Owns approved loot rolls and reward modifiers. The session owns the atomic grant.
+    public interface IEncounterRewardPolicy
+    {
+        EncounterRewardPlan Resolve(EncounterDefinition encounter, GameState snapshot, IRandomStream lootRandom);
     }
 
     // One writer. A rejected command never swaps in its draft or advances RNG.
@@ -398,15 +425,14 @@ namespace IBM.Application
             return result;
         }
 
-        // Commits the base encounter reward and traversal only after the combat result is final.
-        // Loot and Power reward modifiers require their own installed resolver before activation.
-        public EncounterClearResult ResolveEncounterClear()
+        // Commits reward and traversal together only after the combat result is final.
+        public EncounterClearResult ResolveEncounterClear(IEncounterRewardPolicy rewardPolicy = null)
         {
             if (_state.Combat.Active || _state.Combat.IsResolving)
                 throw new InvalidOperationException("Encounter is not at a clear safe point.");
             if (_state.Combat.EncounterRewardClaimed)
                 return new EncounterClearResult(false, _state.Revision, GameNumber.Zero,
-                    Array.Empty<ProgressMilestone>(), false, _state.Run.SelectedStageId);
+                    Array.Empty<ItemInstanceState>(), Array.Empty<ProgressMilestone>(), false, _state.Run.SelectedStageId);
             bool hasHero = false, hasEnemy = false;
             foreach (var actor in _state.Combat.Actors)
             {
@@ -430,9 +456,27 @@ namespace IBM.Application
                 draft.Combat.EncounterId != stage.EncounterIds[stage.EncounterIds.Count - 1])
                 throw new InvalidOperationException("Repeat farming must use the Stage end reward profile.");
             var encounter = _catalog.Encounters[draft.Combat.EncounterId];
-            if (!string.IsNullOrEmpty(encounter.LootTableId.Value) || draft.Run.OwnedPowers.Count != 0)
-                throw new NotSupportedException("Loot and Power reward modifiers need an installed reward resolver.");
-            draft.Run.Exp = draft.Run.Exp.Add(encounter.ExpBudget);
+            bool needsPolicy = !string.IsNullOrEmpty(encounter.LootTableId.Value) || draft.Run.OwnedPowers.Count != 0;
+            if (needsPolicy && rewardPolicy == null)
+                throw new NotSupportedException("Loot and Power reward modifiers need an installed reward policy.");
+            var lootRandom = Pcg32.Restore(draft.Random.Loot.State, draft.Random.Loot.Increment);
+            var reward = needsPolicy
+                ? rewardPolicy.Resolve(encounter, draft.Copy(), lootRandom)
+                : new EncounterRewardPlan(encounter.ExpBudget, Array.Empty<ItemInstanceState>());
+            if (reward == null) throw new InvalidOperationException("Reward policy returned no plan.");
+            var grantedItems = new List<ItemInstanceState>();
+            foreach (var item in reward.Items)
+            {
+                if (item.InstanceId != 0 || item.ItemLevel < 1 || !(_catalog.Items.ContainsKey(item.DefinitionId)) ||
+                    item.AffixIds == null || item.AffixIds.Length != 0 || draft.Run.NextItemSequence == ulong.MaxValue)
+                    throw new InvalidOperationException("Reward policy returned an invalid item instance.");
+                var granted = item.Copy();
+                granted.InstanceId = draft.Run.NextItemSequence++;
+                draft.Run.Inventory.Add(granted);
+                grantedItems.Add(granted.Copy());
+            }
+            draft.Random.Loot.State = lootRandom.State;
+            draft.Run.Exp = draft.Run.Exp.Add(reward.ExpGranted);
             var milestones = new List<ProgressMilestone>();
             bool stageCompleted = false;
             if (stage.IsBossStage)
@@ -481,8 +525,8 @@ namespace IBM.Application
             draft.Combat.EncounterRewardClaimed = true;
             draft.Revision = checked(draft.Revision + 1);
             _state = draft;
-            return new EncounterClearResult(true, draft.Revision, encounter.ExpBudget,
-                milestones.AsReadOnly(), stageCompleted, draft.Run.SelectedStageId);
+            return new EncounterClearResult(true, draft.Revision, reward.ExpGranted,
+                grantedItems.AsReadOnly(), milestones.AsReadOnly(), stageCompleted, draft.Run.SelectedStageId);
         }
 
         public void BeginEncounter(CombatState prepared)

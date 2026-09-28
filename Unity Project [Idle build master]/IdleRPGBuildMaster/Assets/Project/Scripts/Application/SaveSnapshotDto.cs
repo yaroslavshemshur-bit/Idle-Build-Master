@@ -33,6 +33,7 @@ namespace IBM.Application
         public const int CurrentSchemaVersion = 1;
         public string profileId, runId, stateRevision, contentVersion, mechanicalHash;
         public string completedRunCount;
+        public string nextItemSequence;
         public int schemaVersion, rulesVersion, numericVersion, rngVersion;
         public string[] discoveredStages, unlockedPowers, completedStages, completedStageOrder, ownedPowers, pendingPowerOffer;
         public string[] triggeredMilestones, pendingPowerChoiceMilestones;
@@ -79,6 +80,7 @@ namespace IBM.Application
                 purchasedStats = Counts(state.Run.PurchasedStats),
                 selectedStageId = state.Run.SelectedStageId.Value, offlineTargetStageId = state.Run.OfflineTargetStageId.Value,
                 autoPush = state.Run.AutoPush, exp = N(state.Run.Exp),
+                nextItemSequence = S(state.Run.NextItemSequence),
                 inventory = new ItemDto[state.Run.Inventory.Count], equippedItems = new SlotDto[state.Run.EquippedItems.Count],
                 encounterId = state.Combat.EncounterId.Value, combatTime = S(state.Combat.Time.Microseconds),
                 combatActive = state.Combat.Active, encounterRewardClaimed = state.Combat.EncounterRewardClaimed,
@@ -151,6 +153,14 @@ namespace IBM.Application
             foreach (var item in inventory)
                 run.Inventory.Add(new ItemInstanceState { InstanceId = U(item.instanceId), DefinitionId = new ContentId(item.definitionId),
                     ItemLevel = item.itemLevel, AffixIds = ParseIds(item.affixIds), Locked = item.locked });
+            if (string.IsNullOrEmpty(nextItemSequence))
+            {
+                ulong highest = 0;
+                foreach (var item in run.Inventory) highest = Math.Max(highest, item.InstanceId);
+                if (highest == ulong.MaxValue) throw new InvalidOperationException("Saved item sequence is exhausted.");
+                run.NextItemSequence = highest + 1;
+            }
+            else run.NextItemSequence = U(nextItemSequence);
             foreach (var slot in equippedItems) run.EquippedItems.Add(slot.slot, U(slot.instanceId));
             var combat = new CombatState { EncounterId = Optional(encounterId), Time = new SimTime(L(combatTime)), Active = combatActive,
                 EncounterRewardClaimed = encounterRewardClaimed, NextScheduleSequence = U(nextScheduleSequence),
@@ -226,6 +236,17 @@ namespace IBM.Application
             foreach (var power in state.Run.OwnedPowers)
                 if (!catalog.Powers.ContainsKey(power) || !state.Account.UnlockedPowers.Contains(power))
                     throw new InvalidOperationException("Unknown or locked owned Power: " + power);
+            var itemIds = new HashSet<ulong>();
+            foreach (var item in state.Run.Inventory)
+                if (item.InstanceId == 0 || item.InstanceId >= state.Run.NextItemSequence ||
+                    !itemIds.Add(item.InstanceId) || !catalog.Items.ContainsKey(item.DefinitionId) ||
+                    item.ItemLevel < 1 || item.AffixIds == null)
+                    throw new InvalidOperationException("Invalid saved item instance.");
+            if (state.Run.NextItemSequence == 0)
+                throw new InvalidOperationException("Saved item sequence is zero.");
+            foreach (var slot in state.Run.EquippedItems)
+                if (string.IsNullOrWhiteSpace(slot.Key) || !itemIds.Contains(slot.Value))
+                    throw new InvalidOperationException("Invalid equipped item reference.");
             if (state.Run.PendingPowerOffer.Count == 0)
             {
                 if (!string.IsNullOrEmpty(state.Run.ActivePowerOfferMilestoneId.Value))

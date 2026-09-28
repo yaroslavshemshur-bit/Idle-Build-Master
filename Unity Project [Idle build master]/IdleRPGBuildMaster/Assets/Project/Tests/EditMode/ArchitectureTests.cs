@@ -496,6 +496,42 @@ namespace IBM.Tests.EditMode
                 Is.EqualTo(new[] { second }));
         }
 
+        [Test]
+        public void EncounterRewardPolicyGrantsLootAtomicallyAndKeepsItsRandomStream()
+        {
+            var table = new ContentId("test.loot");
+            var item = new ContentId("test.item");
+            var catalog = new ContentCatalog(
+                new[] { new LocationDefinition(Location, new[] { Stage }) },
+                new[] { new StageDefinition(Stage, Location, new[] { Encounter }, 1, false) },
+                new[] { new EncounterDefinition(Encounter, new[] { Enemy }, GameNumber.FromInt64(10), table) },
+                new[] { new EnemyDefinition(Enemy, GameNumber.FromInt64(100), GameNumber.One,
+                    GameNumber.FromInt64(2), SimDuration.FromSeconds(1), Array.Empty<string>(), default) },
+                Array.Empty<EffectDefinition>(), Array.Empty<PowerDefinition>(),
+                new[] { new ItemDefinition(item, "weapon", Array.Empty<ContentId>()) },
+                new[] { new LootTableDefinition(table, new[] { new LootEntry(item, 1d) }) }, Stage);
+            var versions = new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content");
+            var state = new GameState(new AccountState("profile"), new RunState("run", Stage),
+                ClearedEncounter(Encounter), versions, SessionRandomState.Create(48), new OfflineAccountingState());
+            var session = new GameSession(state, catalog);
+            var before = session.CaptureAtSafePoint();
+            Assert.Throws<InvalidOperationException>(() => session.ResolveEncounterClear(
+                new FixedRewardPolicy(item, invalid: true)));
+            Assert.That(session.CaptureAtSafePoint().Random.Loot.State, Is.EqualTo(before.Random.Loot.State));
+            Assert.That(session.CaptureAtSafePoint().Run.Inventory, Is.Empty);
+            var reward = session.ResolveEncounterClear(new FixedRewardPolicy(item, invalid: false));
+            Assert.That(reward.ExpGranted.ToBoundedDouble(), Is.EqualTo(15d));
+            Assert.That(reward.ItemsGranted.Single().InstanceId, Is.EqualTo(1UL));
+            Assert.That(session.CaptureAtSafePoint().Run.Inventory.Single().DefinitionId, Is.EqualTo(item));
+            Assert.That(session.CaptureAtSafePoint().Random.Loot.State, Is.Not.EqualTo(before.Random.Loot.State));
+            Assert.That(session.ResolveEncounterClear().Applied, Is.False);
+            var codec = new UnityJsonSaveCodec();
+            var restored = codec.Decode(codec.Encode(session.CaptureAtSafePoint(), catalog), catalog, versions);
+            Assert.That(restored.Run.Inventory.Single().InstanceId, Is.EqualTo(1UL));
+            Assert.That(restored.Run.NextItemSequence, Is.EqualTo(2UL));
+            Assert.That(restored.Random.Loot.State, Is.EqualTo(session.CaptureAtSafePoint().Random.Loot.State));
+        }
+
         private static CombatState ClearedEncounter(ContentId id) => new CombatState(id, new SimTime(0), new[]
         {
             new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
@@ -571,6 +607,21 @@ namespace IBM.Tests.EditMode
             public IReadOnlyList<ContentId> CreateOffer(ProgressMilestone milestone,
                 IReadOnlyList<ContentId> eligiblePowers, IRandomStream random) =>
                 new[] { eligiblePowers[0] };
+        }
+
+        private sealed class FixedRewardPolicy : IEncounterRewardPolicy
+        {
+            private readonly ContentId _item;
+            private readonly bool _invalid;
+            public FixedRewardPolicy(ContentId item, bool invalid) { _item = item; _invalid = invalid; }
+            public EncounterRewardPlan Resolve(EncounterDefinition encounter, GameState snapshot, IRandomStream lootRandom)
+            {
+                lootRandom.NextUInt32();
+                return new EncounterRewardPlan(GameNumber.FromInt64(15), new[]
+                {
+                    new ItemInstanceState { DefinitionId = _item, ItemLevel = _invalid ? 0 : 1 }
+                });
+            }
         }
     }
 }
