@@ -1,15 +1,26 @@
-# Location 01 — Mechanical & Balance Baseline
+# Location 01 — Goblin Outskirts / Goblin Camp
 
-**Status:** Draft v0.1  
+**Status:** Draft v0.2  
 **Date:** 2026-09-28
 
 ## Purpose
 
 Define the first playable Location as real game content rather than a disposable prototype.
 
-This document intentionally defines mechanics before visual theme.
+This document defines both the approved mechanical baseline and the first visual/content dressing.
 
-Enemy names, environment, art direction and fantasy dressing will be assigned after the mechanical teaching sequence is stable.
+Working Location theme:
+
+**Goblin Outskirts → Goblin Camp**
+
+The player begins on the outskirts of a goblin-controlled area and gradually pushes toward the defended camp and its Chieftain.
+
+The theme is intentionally simple and readable:
+
+- classic fantasy;
+- enemy roles are communicated by silhouette, weapon and shield;
+- multiple mechanical roles reuse a small number of base bodies;
+- visual production stays compatible with simple transform-based animation and limited VFX.
 
 ## Structural baseline
 
@@ -93,21 +104,43 @@ P(L)
 / sqrt(N)
 ```
 
+## Enemy identities
+
+The first Location maps the four mechanical archetypes to a small goblin enemy family.
+
+| Mechanical role | Enemy | Visual language |
+|---|---|---|
+| Basic | **Goblin Grunt** | Standard goblin with sword or club |
+| Fast | **Goblin Scout** | Smaller silhouette, dual daggers / light weapon |
+| Armored | **Goblin Guard** | Shield, heavier helmet/armor |
+| Swarm | **Goblin Runt** | Smaller body, weak-looking improvised weapon |
+| Elite Armored | **Hobgoblin Guard** | Larger armored body, oversized shield |
+| Boss | **Goblin Chieftain** | Large silhouette, heavy armor and prominent shield |
+
+Production target:
+
+- Grunt, Scout and Runt may share one base goblin body;
+- Guard can reuse that body with shield/armor attachments;
+- Hobgoblin Guard and Goblin Chieftain may share a larger base body;
+- weapons, scale, headgear and pose provide most of the differentiation.
+
+The player should be able to infer the mechanical role before reading a stat panel.
+
 ## Stage blueprint
 
-| Stage | End equivalent level | End P(L) | Primary encounter pattern | Design purpose |
+| Stage | End equivalent level | End P(L) | Encounter | Design purpose |
 |---:|---:|---:|---|---|
-| 1 | 7.9 | 1.61 | Basic ×1 | Learn auto-combat, EXP, first Power |
-| 2 | 14.8 | 3.82 | Basic ×1 | Establish stat spending; gear starts during this Stage |
-| 3 | 21.7 | 6.87 | Basic ×2 | First clear multi-enemy lesson |
-| 4 | 28.6 | 11.04 | Fast ×2 | Feel Attack Speed / Accuracy / Evasion pressure |
-| 5 | 35.5 | 16.79 | Armored ×1 | First explicit Block/durability lesson |
-| 6 | 42.4 | 24.68 | Armored + Basic + Fast | Mixed-pressure build check |
-| 7 | 49.3 | 35.52 | Swarm ×4 | Enemy count becomes a build variable |
-| 8 | 56.2 | 50.41 | Elite Armored ×1 | First meaningful mini-wall |
-| 9 | 63.1 | 70.88 | Swarm ×6 | Sustain / reactive / multi-hit pressure |
-| 10 | 70.0 | 99.00 | Armored + Fast ×2 | Pre-Boss mixed check |
-| Boss | 70 | custom | Fortify → Break → Exposed | First full buildcraft hook |
+| 1 | 7.9 | 1.61 | Goblin Grunt ×1 | Learn auto-combat, EXP, first Power |
+| 2 | 14.8 | 3.82 | Goblin Grunt ×1 | Establish stat spending; gear starts during this Stage |
+| 3 | 21.7 | 6.87 | Goblin Grunt ×2 | First clear multi-enemy lesson |
+| 4 | 28.6 | 11.04 | Goblin Scout ×2 | Feel Attack Speed / Accuracy / Evasion pressure |
+| 5 | 35.5 | 16.79 | Goblin Guard ×1 | First explicit Block/durability lesson |
+| 6 | 42.4 | 24.68 | Goblin Guard + Goblin Grunt + Goblin Scout | Mixed-pressure build check |
+| 7 | 49.3 | 35.52 | Goblin Runt ×4 | Enemy count becomes a build variable |
+| 8 | 56.2 | 50.41 | Hobgoblin Guard ×1 | First meaningful mini-wall |
+| 9 | 63.1 | 70.88 | Goblin Runt ×6 | Sustain / reactive / multi-hit pressure |
+| 10 | 70.0 | 99.00 | Goblin Guard + Goblin Scout ×2 | Pre-Boss mixed check |
+| Boss | 70 | custom | Goblin Chieftain | Fortify → Break → Exposed; first full buildcraft hook |
 
 ### Stage 8 Elite
 
@@ -122,6 +155,17 @@ Applied to the Armored archetype after its role multipliers.
 The Elite is intended to be the first noticeable slowdown, not a mandatory reset wall.
 
 Its placement intentionally occurs near the reference-equivalent level-50 Power unlock / choice sequence so the player can feel a meaningful power jump around this part of the Location.
+
+The Hobgoblin Guard should visually read as a mini-boss without introducing a new phase mechanic.
+
+It remains mechanically an Elite Armored enemy:
+
+- large shield;
+- increased scale;
+- heavier armor;
+- stronger hit reaction / screen shake if needed.
+
+It does **not** use the Boss Fortify → Break → Exposed cycle. This preserves that mechanic as the final hook of the Location.
 
 ## EXP reward rule
 
@@ -159,6 +203,12 @@ From that point onward:
 - encounter composition, not raw enemy count, determines the total reward budget.
 
 ## First Boss
+
+Identity:
+
+**Goblin Chieftain**
+
+The Boss should visually communicate its defensive mechanic through an oversized shield and heavier armor.
 
 Baseline primary stats:
 
@@ -213,6 +263,86 @@ No extra damage-taken multiplier is used during Exposed in the first implementat
 
 The Boss has no universal hard-fail timer and does not heal when the hero dies.
 
+### Boss presentation
+
+The mechanic should be readable without requiring a tutorial popup.
+
+**Normal**
+
+- Chieftain fights normally with weapon + shield.
+- Duration: 6 seconds.
+
+**Fortify**
+
+- Chieftain braces behind the large shield.
+- Shield becomes the visual focus.
+- A simple 16-segment shield/break indicator shows progress.
+- Each successful hit removes one segment.
+- Misses do not remove segments.
+
+**Break**
+
+On the 16th successful hit:
+
+- short shield shake / recoil;
+- optional small impact burst;
+- shield drops or moves out of guard position.
+
+**Exposed**
+
+For 6 seconds:
+
+- Chieftain uses a visibly vulnerable / staggered pose;
+- Block is reduced to ×0.25;
+- higher damage numbers provide the primary feedback that the build created an opening.
+
+No extra positional mechanics or manual reaction input is required.
+
+The intended learning is:
+
+> Attack frequency and accuracy help create the opening; raw damage and Block bypass determine how much value the build extracts from it.
+
+## Production constraints
+
+The first Location should be producible with a very small art and animation set.
+
+Suggested asset strategy:
+
+### Base bodies
+
+1. Standard Goblin body
+2. Large Goblin / Hobgoblin body
+
+### Reusable attachments
+
+- club / sword;
+- daggers;
+- small shield;
+- large shield;
+- light helmet;
+- heavy helmet / armor pieces.
+
+### Minimal animation set
+
+- idle bob;
+- attack squash / recoil;
+- hit reaction;
+- death fall / scale-down;
+- Fortify shield pose;
+- Exposed stagger pose.
+
+The goal is to make mechanical differences readable through:
+
+- scale;
+- weapon;
+- shield;
+- silhouette;
+- pose;
+
+rather than requiring unique full animation sets for every enemy.
+
+This follows the project's Gear Defenders production reference: gameplay depth should come primarily from systems rather than expensive animation production.
+
 ## Balance intent
 
 The first Location should be completable by almost every functional first-run build.
@@ -240,4 +370,9 @@ A player should already feel that Powers and stat allocation matter, but the fir
 7. Stage 8 uses a 1.35× Elite Armored baseline.
 8. First Boss uses 109/238/64/89 primary stats.
 9. First Boss uses 6s Normal → Fortify ×5 Block / 16 successful hits → 6s Exposed ×0.25 Block.
-10. Visual theme and concrete enemy identities remain deliberately unassigned until after the mechanical sequence is accepted.
+10. First Location theme is Goblin Outskirts → Goblin Camp.
+11. Basic/Fast/Armored/Swarm roles map to Goblin Grunt / Goblin Scout / Goblin Guard / Goblin Runt.
+12. Stage 8 Elite is a Hobgoblin Guard and does not use the Boss phase mechanic.
+13. First Boss is the Goblin Chieftain.
+14. Goblin Chieftain visually communicates Fortify through a large shield and a 16-hit break indicator.
+15. First Location art should primarily reuse two base bodies plus equipment/scale/pose variation.
