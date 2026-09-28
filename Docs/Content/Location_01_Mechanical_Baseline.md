@@ -1,6 +1,6 @@
 # Location 01 — Goblin Outskirts / Goblin Camp
 
-**Status:** Draft v0.3  
+**Status:** Draft v0.4  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -28,9 +28,11 @@ The first Location contains:
 
 ```
 10 normal Stages
-10 required encounters per Stage
+10 baseline required encounters per Stage
 1 Location Boss
 ```
+
+The no-compression first run therefore uses 100 physical encounters, but progression milestones are authored on normalized `LocationProgress = 0..100`. Stage Compression reduces physical encounters without moving milestone positions.
 
 Total first-run progression before the Boss:
 
@@ -57,7 +59,7 @@ EXP is spent manually on these four primary stats.
 
 ## Progress milestones
 
-| Cumulative encounter | Reference equivalent | Event |
+| Location Progress | Reference equivalent | Event |
 |---:|---:|---|
 | 2 | complete level 1 / reach 2 | First Power choice: 1 of 3 starter Powers |
 | 14 | reach 10 | Gear drops begin |
@@ -331,6 +333,8 @@ Damage Reduction ≈ 24.52%
 No extra damage-taken multiplier is used during Exposed in the first implementation.
 
 The Boss has no universal hard-fail timer and does not heal when the hero dies.
+
+Its guaranteed clear reward is awarded once per run. The Boss is not a repeat-farm target in the first implementation. Deliberately navigating away from an unfinished Boss abandons that encounter; returning later starts it fresh.
 
 ### Boss presentation
 
