@@ -83,7 +83,7 @@ namespace IBM.Domain
         }
     }
 
-    public enum EffectOperation { ModifyStat, DealDamage, Heal, ApplyStatus, DelayAttack, RepeatAttack, IgnoreBlock, Revive, SpawnEnemy, ModifyReward }
+    public enum EffectOperation { ModifyStat, DealDamage, Heal, ApplyStatus, DelayAttack, RepeatAttack, IgnoreBlock, Revive, SpawnEnemy, ModifyReward, RedirectAttack }
     public enum EffectTrigger { Passive, OnAttack, OnHit, OnMiss, OnCrit, OnKill, OnDamageDealt, OnIncomingAttack, OnHitTaken, OnBlock, OnEvade, OnDamageTaken, OnDeath, OnRevive, OnEncounterStart, OnEnemyDeath, OnEncounterWin }
 
     public sealed class EffectDefinition
@@ -94,13 +94,26 @@ namespace IBM.Domain
         public GameNumber Magnitude { get; }
         public double Probability { get; }
         public IReadOnlyList<ContentId> ChildEffectIds { get; }
-        public EffectDefinition(ContentId id, EffectTrigger trigger, EffectOperation operation, GameNumber magnitude, double probability, IReadOnlyList<ContentId> childEffectIds)
+        public CombatStat StatTarget { get; }
+        public StatModifierKind StatKind { get; }
+        public CombatStat SourceStat { get; }
+        public SimDuration Duration { get; }
+        public EffectDefinition(ContentId id, EffectTrigger trigger, EffectOperation operation, GameNumber magnitude,
+            double probability, IReadOnlyList<ContentId> childEffectIds, CombatStat statTarget = default,
+            StatModifierKind statKind = StatModifierKind.Flat, CombatStat sourceStat = default,
+            SimDuration duration = default)
         {
             if (!Enum.IsDefined(typeof(EffectTrigger), trigger) || !Enum.IsDefined(typeof(EffectOperation), operation) ||
                 double.IsNaN(probability) || double.IsInfinity(probability) || probability < 0 || probability > 1)
                 throw new ArgumentException("Effect trigger, operation or probability is invalid.");
             Id = id; Trigger = trigger; Operation = operation; Magnitude = magnitude; Probability = probability;
             ChildEffectIds = LocationDefinition.Copy(childEffectIds);
+            if (!Enum.IsDefined(typeof(CombatStat), statTarget) ||
+                !Enum.IsDefined(typeof(StatModifierKind), statKind) ||
+                !Enum.IsDefined(typeof(CombatStat), sourceStat))
+                throw new ArgumentException("Effect stat expression is invalid.");
+            StatTarget = statTarget; StatKind = statKind; SourceStat = sourceStat;
+            Duration = duration;
         }
     }
 
@@ -151,6 +164,11 @@ namespace IBM.Domain
         public IReadOnlyDictionary<ContentId, PowerDefinition> Powers { get; }
         public IReadOnlyDictionary<ContentId, ItemDefinition> Items { get; }
         public IReadOnlyDictionary<ContentId, LootTableDefinition> LootTables { get; }
+        public IReadOnlyDictionary<ContentId, BossCycleDefinition> BossCycles { get; }
+        public IReadOnlyDictionary<ContentId, EncounterRewardProfileDefinition> RewardProfiles { get; }
+        public IReadOnlyDictionary<ContentId, PowerExpModifierDefinition> PowerExpModifiers { get; }
+        public IReadOnlyDictionary<ContentId, AffixDefinition> Affixes { get; }
+        public AffixRepeatPolicy AffixRepeatPolicy { get; }
         public string MechanicalHash { get; }
         public string BalanceHash { get; }
         public ContentId StartingStageId { get; }
@@ -159,7 +177,12 @@ namespace IBM.Domain
             IEnumerable<EncounterDefinition> encounters, IEnumerable<EnemyDefinition> enemies,
             IEnumerable<EffectDefinition> effects, IEnumerable<PowerDefinition> powers,
             IEnumerable<ItemDefinition> items, IEnumerable<LootTableDefinition> lootTables,
-            ContentId startingStageId, BalanceCatalog balance = null)
+            ContentId startingStageId, BalanceCatalog balance = null,
+            IEnumerable<BossCycleDefinition> bossCycles = null,
+            IEnumerable<EncounterRewardProfileDefinition> rewardProfiles = null,
+            IEnumerable<PowerExpModifierDefinition> powerExpModifiers = null,
+            IEnumerable<AffixDefinition> affixes = null,
+            AffixRepeatPolicy affixRepeatPolicy = AffixRepeatPolicy.Unspecified)
         {
             if (string.IsNullOrEmpty(startingStageId.Value)) throw new ArgumentException("Starting Stage is required.", nameof(startingStageId));
             StartingStageId = startingStageId;
@@ -167,6 +190,15 @@ namespace IBM.Domain
             Encounters = Map(encounters, x => x.Id, "encounter"); Enemies = Map(enemies, x => x.Id, "enemy");
             Effects = Map(effects, x => x.Id, "effect"); Powers = Map(powers, x => x.Id, "power");
             Items = Map(items, x => x.Id, "item"); LootTables = Map(lootTables, x => x.Id, "loot table");
+            BossCycles = Map(bossCycles ?? Array.Empty<BossCycleDefinition>(), x => x.Id, "boss cycle");
+            RewardProfiles = Map(rewardProfiles ?? Array.Empty<EncounterRewardProfileDefinition>(),
+                x => x.EncounterId, "reward profile");
+            PowerExpModifiers = Map(powerExpModifiers ?? Array.Empty<PowerExpModifierDefinition>(),
+                x => x.PowerId, "Power EXP modifier");
+            Affixes = Map(affixes ?? Array.Empty<AffixDefinition>(), x => x.Id, "affix");
+            AffixRepeatPolicy = affixRepeatPolicy;
+            if (!Enum.IsDefined(typeof(AffixRepeatPolicy), affixRepeatPolicy))
+                throw new ArgumentOutOfRangeException(nameof(affixRepeatPolicy));
             ValidateReferences();
             if (!Stages.ContainsKey(StartingStageId)) throw new ArgumentException("Starting Stage is missing: " + StartingStageId);
             BalanceHash = balance?.MechanicalHash;
@@ -223,6 +255,30 @@ namespace IBM.Domain
                 if (!string.IsNullOrEmpty(encounter.LootTableId.Value) && !LootTables.ContainsKey(encounter.LootTableId))
                     throw new ArgumentException("Encounter " + encounter.Id + " has missing loot table " + encounter.LootTableId);
             }
+            foreach (var cycle in BossCycles.Values)
+            {
+                bool referenced = false;
+                foreach (var enemy in Enemies.Values)
+                    if (enemy.BehaviorId == cycle.Id) referenced = true;
+                if (!referenced) throw new ArgumentException("Unreferenced Boss cycle: " + cycle.Id);
+            }
+            foreach (var profile in RewardProfiles.Values)
+            {
+                if (!Encounters.ContainsKey(profile.EncounterId))
+                    throw new ArgumentException("Reward profile has unknown encounter: " + profile.EncounterId);
+                foreach (var roll in profile.Rolls)
+                    if (roll == null || !LootTables.ContainsKey(roll.LootTableId) ||
+                        LootTables[roll.LootTableId].Entries.Count == 0)
+                        throw new ArgumentException("Reward roll has missing or empty loot table.");
+            }
+            foreach (var modifier in PowerExpModifiers.Values)
+                if (!Powers.ContainsKey(modifier.PowerId))
+                    throw new ArgumentException("EXP modifier has unknown Power: " + modifier.PowerId);
+            bool hasProceduralReward = false;
+            foreach (var profile in RewardProfiles.Values)
+                foreach (var roll in profile.Rolls) if (roll.Procedural) hasProceduralReward = true;
+            if (hasProceduralReward && (Affixes.Count == 0 || AffixRepeatPolicy == IBM.Domain.AffixRepeatPolicy.Unspecified))
+                throw new ArgumentException("Procedural reward needs authored affixes and repeat policy.");
             foreach (var power in Powers.Values)
                 foreach (var id in power.EffectIds)
                     if (!Effects.ContainsKey(id)) throw new ArgumentException("Power " + power.Id + " has missing effect " + id);
@@ -274,10 +330,35 @@ namespace IBM.Domain
             foreach (var value in Stages.Values) { text.Append("S|").Append(value.Id).Append('|').Append(value.LocationId).Append('|').Append(value.BaseRequiredEncounters).Append('|').Append(value.IsBossStage); foreach (var id in value.EncounterIds) text.Append('|').Append(id); text.Append('\n'); }
             foreach (var value in Encounters.Values) { text.Append("C|").Append(value.Id).Append('|').Append(value.ExpBudget).Append('|').Append(value.LootTableId); foreach (var id in value.EnemyIds) text.Append('|').Append(id); text.Append('\n'); }
             foreach (var value in Enemies.Values) { text.Append("N|").Append(value.Id).Append('|').Append(value.MaxHp).Append('|').Append(value.MinDamage).Append('|').Append(value.MaxDamage).Append('|').Append(value.AttackInterval.Microseconds).Append('|').Append(value.BehaviorId); foreach (var tag in value.Tags) text.Append('|').Append(tag); text.Append('\n'); }
-            foreach (var value in Effects.Values) { text.Append("F|").Append(value.Id).Append('|').Append((int)value.Trigger).Append('|').Append((int)value.Operation).Append('|').Append(value.Magnitude).Append('|').Append(value.Probability.ToString("R", System.Globalization.CultureInfo.InvariantCulture)); foreach (var id in value.ChildEffectIds) text.Append('|').Append(id); text.Append('\n'); }
+            foreach (var value in Effects.Values) { text.Append("F|").Append(value.Id).Append('|').Append((int)value.Trigger).Append('|').Append((int)value.Operation).Append('|').Append(value.Magnitude).Append('|').Append(value.Probability.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append('|').Append((int)value.StatTarget).Append('|').Append((int)value.StatKind).Append('|').Append((int)value.SourceStat).Append('|').Append(value.Duration.Microseconds); foreach (var id in value.ChildEffectIds) text.Append('|').Append(id); text.Append('\n'); }
             foreach (var value in Powers.Values) { text.Append("P|").Append(value.Id); foreach (var id in value.EffectIds) text.Append('|').Append(id); text.Append('\n'); }
             foreach (var value in Items.Values) { text.Append("I|").Append(value.Id).Append('|').Append(value.Slot); foreach (var id in value.EffectIds) text.Append('|').Append(id); text.Append('\n'); }
             foreach (var value in LootTables.Values) { text.Append("T|").Append(value.Id); foreach (var entry in value.Entries) text.Append('|').Append(entry.ItemId).Append(':').Append(entry.Weight.ToString("R", System.Globalization.CultureInfo.InvariantCulture)); text.Append('\n'); }
+            foreach (var value in BossCycles.Values)
+                text.Append("BOSS|").Append(value.Id).Append('|').Append(value.NormalPhaseId).Append('|')
+                    .Append(value.FortifyPhaseId).Append('|').Append(value.ExposedPhaseId).Append('|')
+                    .Append(value.NormalDuration.Microseconds).Append('|').Append(value.ExposedDuration.Microseconds)
+                    .Append('|').Append(value.FortifyBreakHits).Append('|').Append(value.NormalBlockMultiplier)
+                    .Append('|').Append(value.FortifyBlockMultiplier).Append('|').Append(value.ExposedBlockMultiplier).Append('\n');
+            foreach (var value in RewardProfiles.Values)
+            {
+                text.Append("R|").Append(value.EncounterId);
+                foreach (var roll in value.Rolls)
+                {
+                    text.Append('|').Append(roll.LootTableId).Append(':')
+                        .Append(roll.Chance.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append(':')
+                        .Append(roll.RollCount).Append(':').Append(roll.ItemLevel).Append(':').Append(roll.Procedural);
+                    foreach (var weight in roll.RarityWeights)
+                        text.Append(':').Append(weight.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                }
+                text.Append('\n');
+            }
+            foreach (var value in PowerExpModifiers.Values)
+                text.Append("X|").Append(value.PowerId).Append('|').Append(value.Multiplier).Append('\n');
+            text.Append("AFFIX_REPEAT|").Append((int)AffixRepeatPolicy).Append('\n');
+            foreach (var value in Affixes.Values)
+                text.Append("AFFIX|").Append(value.Id).Append('|').Append((int)value.Target).Append('|')
+                    .Append(value.MagnitudePerPower).Append('|').Append(value.Primary).Append('\n');
             using (var sha = SHA256.Create())
                 return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-", "").ToLowerInvariant();
         }

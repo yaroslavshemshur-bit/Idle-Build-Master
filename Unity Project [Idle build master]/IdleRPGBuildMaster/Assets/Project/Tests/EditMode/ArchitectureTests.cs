@@ -614,6 +614,280 @@ namespace IBM.Tests.EditMode
             Assert.That(transition.Applied, Is.True);
         }
 
+        [Test]
+        public void LiveBuildTransitionRebasesHpAndCallsClockPolicyInOneCommit()
+        {
+            var balance = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(
+                "Assets/Project/Content/Authoring/Tuning/BalanceTuning.asset").Compile();
+            var catalog = Catalog(balance);
+            var run = new RunState("run", Stage);
+            var account = new AccountState("profile");
+            var versions = new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content");
+            var earned = new GameSession(new GameState(account, run, ClearedEncounter(Encounter), versions,
+                SessionRandomState.Create(33), new OfflineAccountingState()), catalog);
+            earned.ResolveEncounterClear();
+            var saved = earned.CaptureAtSafePoint();
+            var beforeStats = CombatMath.Baseline(PrimaryStatProgression.Resolve(saved.Run, balance), balance);
+            var combat = new CombatState(Encounter, new SimTime(0), new[]
+            {
+                new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
+                    Hp = beforeStats.MaxHp.Divide(GameNumber.FromInt64(2)), MaxHp = beforeStats.MaxHp,
+                    Life = ActorLifeState.Alive },
+                new ActorState { InstanceId = 2, DefinitionId = Enemy,
+                    Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive }
+            });
+            var live = new GameSession(new GameState(saved.Account, saved.Run, combat, versions,
+                saved.Random, saved.Offline), catalog);
+            var clocks = new RecordingClockAdjustment();
+            var transition = new CombatBuildTransition(new BaselineHeroStatSnapshotProvider(balance), clocks);
+            var result = live.Execute(new BuyStatUpgradeCommand("vit-1", 0, PrimaryStatKind.Vitality),
+                purchaseBalance: balance, primaryStatTransition: transition);
+            Assert.That(result.Status, Is.EqualTo(CommandStatus.Applied));
+            var hero = live.CaptureAtSafePoint().Combat.Actors.Single(actor => actor.IsHero);
+            Assert.That(hero.MaxHp.ToBoundedDouble(), Is.EqualTo(220d));
+            Assert.That(hero.Hp.ToBoundedDouble(), Is.EqualTo(110d));
+            Assert.That(hero.RegenAnchorHp.ToBoundedDouble(), Is.EqualTo(110d));
+            Assert.That(clocks.CallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void BossFortifyBreakAndTimedExposedContinueAcrossSave()
+        {
+            var balance = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(
+                "Assets/Project/Content/Authoring/Tuning/BalanceTuning.asset").Compile();
+            var cycle = new BossCycleDefinition(new ContentId("boss.cycle"), new ContentId("phase.normal"),
+                new ContentId("phase.fortify"), new ContentId("phase.exposed"),
+                SimDuration.FromSeconds(6), SimDuration.FromSeconds(6), 2,
+                GameNumber.One, GameNumber.FromInt64(5), GameNumber.Parse("25", "-2"));
+            var controller = new BossCycleController(cycle, 2, -1);
+            var source = new CombatState(Encounter, new SimTime(0), new[]
+            {
+                new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
+                    Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive },
+                new ActorState { InstanceId = 2, DefinitionId = Enemy,
+                    Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive }
+            });
+            var started = controller.Initialize(source);
+            var stats = new ConstantStatsProvider(new DerivedStats(GameNumber.One, GameNumber.One,
+                GameNumber.FromInt64(100), GameNumber.FromInt64(10), GameNumber.FromInt64(100),
+                GameNumber.FromInt64(100), GameNumber.Zero, 1d));
+            var advanced = CombatTimeline.Advance(started, SessionRandomState.Create(1), new SimTime(6000000),
+                10, stats, new FirstOpposingTargetPolicy(), balance, 0, -1,
+                HeroDownedAttackClockPolicy.PauseRemaining, controller);
+            Assert.That(advanced.Combat.Boss.PhaseId, Is.EqualTo(cycle.FortifyPhaseId));
+            Assert.That(controller.EffectiveBlock(advanced.Combat, advanced.Combat.Actors[1], GameNumber.FromInt64(10))
+                .ToBoundedDouble(), Is.EqualTo(50d));
+            var firstHit = controller.ApplySuccessfulDirectHeroHit(advanced.Combat, 2);
+            Assert.That(firstHit.Boss.Counter, Is.EqualTo(1));
+            var broken = controller.ApplySuccessfulDirectHeroHit(firstHit, 2);
+            Assert.That(broken.Boss.PhaseId, Is.EqualTo(cycle.ExposedPhaseId));
+            var catalog = new ContentCatalog(new[] { new LocationDefinition(Location, new[] { Stage }) },
+                new[] { new StageDefinition(Stage, Location, new[] { Encounter }, 1, false) },
+                new[] { new EncounterDefinition(Encounter, new[] { Enemy }, GameNumber.One, default) },
+                new[] { new EnemyDefinition(Enemy, GameNumber.FromInt64(100), GameNumber.One,
+                    GameNumber.One, SimDuration.FromSeconds(1), Array.Empty<string>(), cycle.Id) },
+                Array.Empty<EffectDefinition>(), Array.Empty<PowerDefinition>(), Array.Empty<ItemDefinition>(),
+                Array.Empty<LootTableDefinition>(), Stage, balance, new[] { cycle });
+            var versions = new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content");
+            var snapshot = new GameState(new AccountState("profile"), new RunState("run", Stage),
+                broken, versions, advanced.Random, new OfflineAccountingState());
+            var codec = new UnityJsonSaveCodec();
+            var loaded = codec.Decode(codec.Encode(snapshot, catalog), catalog, versions);
+            var after = CombatTimeline.Advance(loaded.Combat, loaded.Random, new SimTime(12000000), 10,
+                stats, new FirstOpposingTargetPolicy(), balance, 0, -1,
+                HeroDownedAttackClockPolicy.PauseRemaining, controller);
+            Assert.That(after.Combat.Boss.PhaseId, Is.EqualTo(cycle.NormalPhaseId));
+        }
+
+        [Test]
+        public void AuthoredRewardGroupsGrantNamedAndProceduralGearWithPowerExp()
+        {
+            var balance = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(
+                "Assets/Project/Content/Authoring/Tuning/BalanceTuning.asset").Compile();
+            var power = new ContentId("test.power.exp");
+            var namedItem = new ContentId("test.item.named");
+            var ordinaryItem = new ContentId("test.item.ordinary");
+            var namedTable = new ContentId("test.table.named");
+            var ordinaryTable = new ContentId("test.table.ordinary");
+            var affixes = new[]
+            {
+                new AffixDefinition(new ContentId("a.str"), CombatStat.Strength, GameNumber.One, true),
+                new AffixDefinition(new ContentId("a.vit"), CombatStat.Vitality, GameNumber.One, true),
+                new AffixDefinition(new ContentId("a.agi"), CombatStat.Agility, GameNumber.One, true),
+                new AffixDefinition(new ContentId("a.dex"), CombatStat.Dexterity, GameNumber.One, true),
+                new AffixDefinition(new ContentId("a.hp"), CombatStat.MaxHp, GameNumber.FromInt64(150), false),
+                new AffixDefinition(new ContentId("a.block"), CombatStat.Block, GameNumber.One, false)
+            };
+            var profile = new EncounterRewardProfileDefinition(Encounter, new[]
+            {
+                new RewardRollDefinition(namedTable, 1d, 1, 50, false),
+                new RewardRollDefinition(ordinaryTable, 1d, 1, 50, true,
+                    new[] { 1d, 0d, 0d, 0d, 0d, 0d })
+            });
+            var catalog = new ContentCatalog(
+                new[] { new LocationDefinition(Location, new[] { Stage }) },
+                new[] { new StageDefinition(Stage, Location, new[] { Encounter }, 1, false) },
+                new[] { new EncounterDefinition(Encounter, new[] { Enemy }, GameNumber.FromInt64(10), default) },
+                new[] { new EnemyDefinition(Enemy, GameNumber.FromInt64(100), GameNumber.One,
+                    GameNumber.One, SimDuration.FromSeconds(1), Array.Empty<string>(), default) },
+                Array.Empty<EffectDefinition>(), new[] { new PowerDefinition(power, Array.Empty<ContentId>()) },
+                new[] { new ItemDefinition(namedItem, "accessory", Array.Empty<ContentId>()),
+                    new ItemDefinition(ordinaryItem, "weapon", Array.Empty<ContentId>()) },
+                new[] { new LootTableDefinition(namedTable, new[] { new LootEntry(namedItem, 1d) }),
+                    new LootTableDefinition(ordinaryTable, new[] { new LootEntry(ordinaryItem, 1d) }) },
+                Stage, balance, null, new[] { profile },
+                new[] { new PowerExpModifierDefinition(power, GameNumber.FromInt64(5)) },
+                affixes, AffixRepeatPolicy.WithoutReplacement);
+            var account = new AccountState("profile");
+            account.UnlockedPowers.Add(power);
+            var run = new RunState("run", Stage);
+            run.OwnedPowers.Add(power);
+            var versions = new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content");
+            var session = new GameSession(new GameState(account, run, ClearedEncounter(Encounter), versions,
+                SessionRandomState.Create(99), new OfflineAccountingState()), catalog);
+            var gear = new ProceduralGearGenerator(catalog, balance);
+            var reward = session.ResolveEncounterClear(new CatalogEncounterRewardPolicy(catalog, gear));
+            Assert.That(reward.ExpGranted.ToBoundedDouble(), Is.EqualTo(50d));
+            Assert.That(reward.ItemsGranted.Count, Is.EqualTo(2));
+            Assert.That(reward.ItemsGranted[0].Procedural, Is.False);
+            Assert.That(reward.ItemsGranted[1].Rarity, Is.EqualTo(ItemRarity.Common));
+            Assert.That(reward.ItemsGranted[1].AffixIds.Length, Is.EqualTo(1));
+            Assert.That(gear.AffixPower(70).ToBoundedDouble(), Is.EqualTo(14d));
+            var codec = new UnityJsonSaveCodec();
+            var restored = codec.Decode(codec.Encode(session.CaptureAtSafePoint(), catalog), catalog, versions);
+            Assert.That(restored.Run.Inventory[1].AffixIds,
+                Is.EqualTo(session.CaptureAtSafePoint().Run.Inventory[1].AffixIds));
+            Assert.That(session.ResolveEncounterClear().Applied, Is.False);
+        }
+
+        [Test]
+        public void PassivePowerAndNamedItemConversionShareResolvedStatGraph()
+        {
+            var balance = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(
+                "Assets/Project/Content/Authoring/Tuning/BalanceTuning.asset").Compile();
+            var powerId = new ContentId("test.power.strength");
+            var itemId = new ContentId("test.item.bulwark");
+            var powerEffect = new ContentId("test.effect.strength");
+            var itemEffect = new ContentId("test.effect.block_to_max");
+            var catalog = new ContentCatalog(
+                new[] { new LocationDefinition(Location, new[] { Stage }) },
+                new[] { new StageDefinition(Stage, Location, new[] { Encounter }, 1, false) },
+                new[] { new EncounterDefinition(Encounter, new[] { Enemy }, GameNumber.One, default) },
+                new[] { new EnemyDefinition(Enemy, GameNumber.FromInt64(100), GameNumber.One,
+                    GameNumber.One, SimDuration.FromSeconds(1), Array.Empty<string>(), default) },
+                new[]
+                {
+                    new EffectDefinition(powerEffect, EffectTrigger.Passive, EffectOperation.ModifyStat,
+                        GameNumber.FromInt64(10), 1d, Array.Empty<ContentId>(),
+                        CombatStat.Strength, StatModifierKind.Multiplier),
+                    new EffectDefinition(itemEffect, EffectTrigger.Passive, EffectOperation.ModifyStat,
+                        GameNumber.Parse("5", "-1"), 1d, Array.Empty<ContentId>(),
+                        CombatStat.MaxDamage, StatModifierKind.Conversion, CombatStat.Block)
+                },
+                new[] { new PowerDefinition(powerId, new[] { powerEffect }) },
+                new[] { new ItemDefinition(itemId, "accessory", new[] { itemEffect }) },
+                Array.Empty<LootTableDefinition>(), Stage, balance);
+            var run = new RunState("run", Stage);
+            run.OwnedPowers.Add(powerId);
+            run.Inventory.Add(new ItemInstanceState { InstanceId = 1, DefinitionId = itemId, ItemLevel = 50 });
+            run.NextItemSequence = 2;
+            run.EquippedItems.Add("accessory", 1);
+            var account = new AccountState("profile");
+            account.UnlockedPowers.Add(powerId);
+            var state = new GameState(account, run, new CombatState(),
+                new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content"),
+                SessionRandomState.Create(7), new OfflineAccountingState());
+            var derived = new CatalogHeroStatSnapshotProvider(catalog, balance).Resolve(state);
+            Assert.That(derived.Block.ToBoundedDouble(), Is.EqualTo(1.5d));
+            Assert.That(derived.MaxDamage.ToBoundedDouble(), Is.EqualTo(26.25d));
+        }
+
+        [Test]
+        public void IndependentTimedEffectExpiryContinuesAfterSave()
+        {
+            var effectId = new ContentId("test.effect.timed");
+            var effect = new EffectDefinition(effectId, EffectTrigger.OnHitTaken, EffectOperation.ModifyStat,
+                GameNumber.Parse("11", "-1"), 1d, Array.Empty<ContentId>(), CombatStat.Strength,
+                StatModifierKind.Multiplier, default, SimDuration.FromSeconds(5));
+            var catalog = new ContentCatalog(new[] { new LocationDefinition(Location, new[] { Stage }) },
+                new[] { new StageDefinition(Stage, Location, new[] { Encounter }, 1, false) },
+                new[] { new EncounterDefinition(Encounter, new[] { Enemy }, GameNumber.One, default) },
+                new[] { new EnemyDefinition(Enemy, GameNumber.FromInt64(100), GameNumber.One,
+                    GameNumber.One, SimDuration.FromSeconds(1), Array.Empty<string>(), default) },
+                new[] { effect }, Array.Empty<PowerDefinition>(), Array.Empty<ItemDefinition>(),
+                Array.Empty<LootTableDefinition>(), Stage);
+            var initial = new CombatState(Encounter, new SimTime(0), new[]
+            {
+                new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
+                    Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive },
+                new ActorState { InstanceId = 2, DefinitionId = Enemy,
+                    Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive }
+            });
+            var lifetime = new EffectLifetimeController(catalog, 2);
+            var withOne = lifetime.Apply(initial, effectId, 2, 1);
+            var withTwo = lifetime.Apply(withOne, effectId, 2, 1);
+            Assert.That(withTwo.Effects.Select(x => x.InstanceId), Is.EqualTo(new[] { 1UL, 2UL }));
+            var stats = new ConstantStatsProvider(new DerivedStats(GameNumber.One, GameNumber.One,
+                GameNumber.FromInt64(100), GameNumber.Zero, GameNumber.FromInt64(100),
+                GameNumber.FromInt64(100), GameNumber.Zero, 0d));
+            var balance = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(
+                "Assets/Project/Content/Authoring/Tuning/BalanceTuning.asset").Compile();
+            var halfway = CombatTimeline.Advance(withTwo, SessionRandomState.Create(3), new SimTime(2000000),
+                10, stats, new FirstOpposingTargetPolicy(), balance, 0, 1,
+                HeroDownedAttackClockPolicy.PauseRemaining, effects: lifetime);
+            var versions = new VersionStamp(1, 1, 1, Pcg32.AlgorithmVersion, "test-content");
+            var snapshot = new GameState(new AccountState("profile"), new RunState("run", Stage),
+                halfway.Combat, versions, halfway.Random, new OfflineAccountingState());
+            var codec = new UnityJsonSaveCodec();
+            var loaded = codec.Decode(codec.Encode(snapshot, catalog), catalog, versions);
+            var finished = CombatTimeline.Advance(loaded.Combat, loaded.Random, new SimTime(5000000),
+                10, stats, new FirstOpposingTargetPolicy(), balance, 0, 1,
+                HeroDownedAttackClockPolicy.PauseRemaining, effects: lifetime);
+            Assert.That(finished.Combat.Effects, Is.Empty);
+        }
+
+        [Test]
+        public void AuthoredIncomingReplacementCanMakeAnEnemyHitItself()
+        {
+            var balance = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(
+                "Assets/Project/Content/Authoring/Tuning/BalanceTuning.asset").Compile();
+            var powerId = new ContentId("test.power.redirect");
+            var effectId = new ContentId("test.effect.redirect");
+            var catalog = new ContentCatalog(
+                new[] { new LocationDefinition(Location, new[] { Stage }) },
+                new[] { new StageDefinition(Stage, Location, new[] { Encounter }, 1, false) },
+                new[] { new EncounterDefinition(Encounter, new[] { Enemy }, GameNumber.One, default) },
+                new[] { new EnemyDefinition(Enemy, GameNumber.FromInt64(100), GameNumber.One,
+                    GameNumber.One, SimDuration.FromSeconds(1), Array.Empty<string>(), default) },
+                new[] { new EffectDefinition(effectId, EffectTrigger.OnIncomingAttack,
+                    EffectOperation.RedirectAttack, GameNumber.Zero, 1d, Array.Empty<ContentId>()) },
+                new[] { new PowerDefinition(powerId, new[] { effectId }) },
+                Array.Empty<ItemDefinition>(), Array.Empty<LootTableDefinition>(), Stage, balance);
+            var run = new RunState("run", Stage);
+            run.OwnedPowers.Add(powerId);
+            var modifiers = new CatalogAttackModifierPolicy(catalog, run);
+            var heroStats = new DerivedStats(GameNumber.Zero, GameNumber.Zero, GameNumber.FromInt64(100),
+                GameNumber.Zero, GameNumber.FromInt64(100), GameNumber.FromInt64(100), GameNumber.Zero, 0d);
+            var enemyStats = new DerivedStats(GameNumber.FromInt64(200), GameNumber.FromInt64(200),
+                GameNumber.FromInt64(100), GameNumber.Zero, GameNumber.FromInt64(100),
+                GameNumber.FromInt64(100), GameNumber.Zero, 1d);
+            var source = new CombatState(Encounter, new SimTime(0), new[]
+            {
+                new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
+                    Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive },
+                new ActorState { InstanceId = 2, DefinitionId = Enemy,
+                    Hp = GameNumber.FromInt64(100), MaxHp = GameNumber.FromInt64(100), Life = ActorLifeState.Alive }
+            });
+            var started = CombatTimeline.StartOrdinaryAttacks(source,
+                new PerActorStatsProvider(heroStats, enemyStats), 0);
+            var result = CombatTimeline.Advance(started, SessionRandomState.Create(5), new SimTime(10000000),
+                100, new PerActorStatsProvider(heroStats, enemyStats), new FirstOpposingTargetPolicy(),
+                balance, 0, 1, HeroDownedAttackClockPolicy.PauseRemaining, attackModifiers: modifiers);
+            Assert.That(result.Attacks.Count, Is.GreaterThan(0));
+            Assert.That(result.Attacks.All(x => x.AttackerId == 2 && x.TargetId == 2), Is.True);
+            Assert.That(result.Combat.Actors[0].Hp.ToBoundedDouble(), Is.EqualTo(100d));
+        }
+
         private static CombatState ClearedEncounter(ContentId id) => new CombatState(id, new SimTime(0), new[]
         {
             new ActorState { InstanceId = 1, DefinitionId = new ContentId("hero"), IsHero = true,
@@ -717,6 +991,13 @@ namespace IBM.Tests.EditMode
                 hero.Hp = CombatMath.RebaseCurrentHp(hero.Hp, before.Combat.Actors.Single(actor => actor.IsHero).MaxHp,
                     hero.MaxHp);
             }
+        }
+
+        private sealed class RecordingClockAdjustment : ICombatClockAdjustment
+        {
+            public int CallCount { get; private set; }
+            public void Apply(GameState before, GameState after, DerivedStats previous, DerivedStats current)
+            { CallCount++; }
         }
     }
 }

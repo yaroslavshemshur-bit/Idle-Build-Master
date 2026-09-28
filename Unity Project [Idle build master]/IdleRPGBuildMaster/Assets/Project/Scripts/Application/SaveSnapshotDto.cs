@@ -8,7 +8,9 @@ namespace IBM.Application
     [Serializable] public sealed class NumberDto { public string coefficient; public string exponent; }
     [Serializable] public sealed class CountDto { public string id; public string value; }
     [Serializable] public sealed class SlotDto { public string slot; public string instanceId; }
-    [Serializable] public sealed class ItemDto { public string instanceId; public string definitionId; public int itemLevel; public string[] affixIds; public bool locked; }
+    [Serializable] public sealed class ItemDto
+    { public string instanceId; public string definitionId; public int itemLevel; public string[] affixIds;
+      public bool procedural; public int rarity; public bool locked; }
     [Serializable] public sealed class ActorDto
     {
         public string instanceId, definitionId, hpCoefficient, hpExponent, maxHpCoefficient, maxHpExponent;
@@ -54,6 +56,7 @@ namespace IBM.Application
         public string downedStartedAt;
         public int downedAttackPolicy;
         public string bossPhaseId, bossEnteredAt, bossCounter;
+        public string bossTransitionRevision;
         public string rootSeed;
         public RngDto combatRng, lootRng, offersRng, offlineRng;
         public string offlineAccountedThroughUtc, offlineResidual, offlineLastOperationId;
@@ -92,7 +95,8 @@ namespace IBM.Application
                 downedStartedAt = S(state.Combat.DownedStartedAt.Microseconds),
                 downedAttackPolicy = (int)state.Combat.DownedAttackPolicy,
                 bossPhaseId = state.Combat.Boss.PhaseId.Value, bossEnteredAt = S(state.Combat.Boss.EnteredAt.Microseconds),
-                bossCounter = S(state.Combat.Boss.Counter), rootSeed = S(state.Random.RootSeed),
+                bossCounter = S(state.Combat.Boss.Counter),
+                bossTransitionRevision = S(state.Combat.Boss.TransitionRevision), rootSeed = S(state.Random.RootSeed),
                 combatRng = R(state.Random.Combat), lootRng = R(state.Random.Loot),
                 offersRng = R(state.Random.Offers), offlineRng = R(state.Random.Offline),
                 offlineAccountedThroughUtc = state.Offline.AccountedThroughUtc,
@@ -100,7 +104,8 @@ namespace IBM.Application
             };
             int i = 0;
             foreach (var item in state.Run.Inventory) dto.inventory[i++] = new ItemDto { instanceId = S(item.InstanceId),
-                definitionId = item.DefinitionId.Value, itemLevel = item.ItemLevel, affixIds = OrderedIds(item.AffixIds), locked = item.Locked };
+                definitionId = item.DefinitionId.Value, itemLevel = item.ItemLevel, affixIds = OrderedIds(item.AffixIds),
+                procedural = item.Procedural, rarity = (int)item.Rarity, locked = item.Locked };
             i = 0;
             foreach (var slot in state.Run.EquippedItems) dto.equippedItems[i++] = new SlotDto { slot = slot.Key, instanceId = S(slot.Value) };
             for (i = 0; i < dto.actors.Length; i++)
@@ -152,7 +157,8 @@ namespace IBM.Application
             Add(run.PurchasedStats, purchasedStats);
             foreach (var item in inventory)
                 run.Inventory.Add(new ItemInstanceState { InstanceId = U(item.instanceId), DefinitionId = new ContentId(item.definitionId),
-                    ItemLevel = item.itemLevel, AffixIds = ParseIds(item.affixIds), Locked = item.locked });
+                    ItemLevel = item.itemLevel, AffixIds = ParseIds(item.affixIds),
+                    Procedural = item.procedural, Rarity = (ItemRarity)item.rarity, Locked = item.locked });
             if (string.IsNullOrEmpty(nextItemSequence))
             {
                 ulong highest = 0;
@@ -165,7 +171,8 @@ namespace IBM.Application
             var combat = new CombatState { EncounterId = Optional(encounterId), Time = new SimTime(L(combatTime)), Active = combatActive,
                 EncounterRewardClaimed = encounterRewardClaimed, NextScheduleSequence = U(nextScheduleSequence),
                 NextActorSequence = U(nextActorSequence), NextEffectSequence = U(nextEffectSequence),
-                Boss = new BossState { PhaseId = Optional(bossPhaseId), EnteredAt = new SimTime(L(bossEnteredAt)), Counter = L(bossCounter) },
+                Boss = new BossState { PhaseId = Optional(bossPhaseId), EnteredAt = new SimTime(L(bossEnteredAt)),
+                    Counter = L(bossCounter), TransitionRevision = string.IsNullOrEmpty(bossTransitionRevision) ? 0 : L(bossTransitionRevision) },
                 DownedStartedAt = string.IsNullOrEmpty(downedStartedAt) ? new SimTime(0) : new SimTime(L(downedStartedAt)),
                 DownedAttackPolicy = (HeroDownedAttackClockPolicy)downedAttackPolicy };
             foreach (var actor in actors)
@@ -247,6 +254,7 @@ namespace IBM.Application
                     !itemIds.Add(item.InstanceId) || !catalog.Items.ContainsKey(item.DefinitionId) ||
                     item.ItemLevel < 1 || item.AffixIds == null)
                     throw new InvalidOperationException("Invalid saved item instance.");
+                GameSession.ValidateItemAffixes(item, catalog);
                 itemsById.Add(item.InstanceId, item);
             }
             if (state.Run.NextItemSequence == 0)
@@ -296,6 +304,18 @@ namespace IBM.Application
             foreach (var effect in state.Combat.Effects)
                 if (!catalog.Effects.ContainsKey(effect.DefinitionId) || !actorIds.Contains(effect.OwnerActorId) || effect.Stacks <= 0)
                     throw new InvalidOperationException("Unknown or invalid effect in save.");
+            if (!string.IsNullOrEmpty(state.Combat.Boss.PhaseId.Value))
+            {
+                bool knownPhase = false;
+                foreach (var cycle in catalog.BossCycles.Values)
+                    if (state.Combat.Boss.PhaseId == cycle.NormalPhaseId ||
+                        state.Combat.Boss.PhaseId == cycle.FortifyPhaseId ||
+                        state.Combat.Boss.PhaseId == cycle.ExposedPhaseId)
+                        knownPhase = true;
+                if (!knownPhase || state.Combat.Boss.TransitionRevision <= 0 ||
+                    state.Combat.Boss.Counter < 0 || state.Combat.Boss.EnteredAt.CompareTo(state.Combat.Time) > 0)
+                    throw new InvalidOperationException("Invalid saved Boss phase state.");
+            }
             SimulationScheduler.Restore(state.Combat.Time, state.Combat.NextScheduleSequence, state.Combat.PendingEvents);
             var sequenceIds = new HashSet<ulong>();
             foreach (var entry in state.Combat.PendingEvents) sequenceIds.Add(entry.Sequence);

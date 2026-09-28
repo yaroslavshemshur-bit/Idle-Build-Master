@@ -167,6 +167,7 @@ namespace IBM.Application
         public ContentId PhaseId { get; set; }
         public SimTime EnteredAt { get; set; }
         public long Counter { get; set; }
+        public long TransitionRevision { get; set; }
         public BossState Copy() => (BossState)MemberwiseClone();
     }
     public sealed class ItemInstanceState
@@ -175,10 +176,14 @@ namespace IBM.Application
         public ContentId DefinitionId { get; set; }
         public int ItemLevel { get; set; }
         public ContentId[] AffixIds { get; set; } = Array.Empty<ContentId>();
+        public bool Procedural { get; set; }
+        public ItemRarity Rarity { get; set; }
         public bool Locked { get; set; }
         public ItemInstanceState Copy() => new ItemInstanceState { InstanceId = InstanceId, DefinitionId = DefinitionId,
-            ItemLevel = ItemLevel, AffixIds = (ContentId[])AffixIds.Clone(), Locked = Locked };
+            ItemLevel = ItemLevel, AffixIds = (ContentId[])AffixIds.Clone(), Procedural = Procedural,
+            Rarity = Rarity, Locked = Locked };
     }
+    public enum ItemRarity { None, Common, Uncommon, Rare, Epic, Legendary, Godlike }
 
     public sealed class RngStreamState
     {
@@ -444,12 +449,14 @@ namespace IBM.Application
 
         public CombatTimelineResult AdvanceCombat(SimTime target, int maxEvents, ICombatStatsProvider stats,
             ICombatTargetPolicy targets, BalanceCatalog balance, int attackPriority, int revivePriority,
-            HeroDownedAttackClockPolicy heroAttackPolicy)
+            HeroDownedAttackClockPolicy heroAttackPolicy, BossCycleController bossCycle = null,
+            EffectLifetimeController effects = null, ICombatAttackModifierPolicy attackModifiers = null)
         {
             if (_state.Combat.IsResolving) throw new InvalidOperationException("A combat action is still resolving.");
             var draft = _state.Copy();
             var result = CombatTimeline.Advance(draft.Combat, draft.Random, target, maxEvents,
-                stats, targets, balance, attackPriority, revivePriority, heroAttackPolicy);
+                stats, targets, balance, attackPriority, revivePriority, heroAttackPolicy,
+                bossCycle, effects, attackModifiers);
             draft.Combat = result.Combat;
             draft.Random = result.Random;
             _state = draft;
@@ -487,7 +494,8 @@ namespace IBM.Application
                 draft.Combat.EncounterId != stage.EncounterIds[stage.EncounterIds.Count - 1])
                 throw new InvalidOperationException("Repeat farming must use the Stage end reward profile.");
             var encounter = _catalog.Encounters[draft.Combat.EncounterId];
-            bool needsPolicy = !string.IsNullOrEmpty(encounter.LootTableId.Value) || draft.Run.OwnedPowers.Count != 0;
+            bool needsPolicy = !string.IsNullOrEmpty(encounter.LootTableId.Value) ||
+                _catalog.RewardProfiles.ContainsKey(encounter.Id) || draft.Run.OwnedPowers.Count != 0;
             if (needsPolicy && rewardPolicy == null)
                 throw new NotSupportedException("Loot and Power reward modifiers need an installed reward policy.");
             var lootRandom = Pcg32.Restore(draft.Random.Loot.State, draft.Random.Loot.Increment);
@@ -499,8 +507,9 @@ namespace IBM.Application
             foreach (var item in reward.Items)
             {
                 if (item.InstanceId != 0 || item.ItemLevel < 1 || !(_catalog.Items.ContainsKey(item.DefinitionId)) ||
-                    item.AffixIds == null || item.AffixIds.Length != 0 || draft.Run.NextItemSequence == ulong.MaxValue)
+                    item.AffixIds == null || draft.Run.NextItemSequence == ulong.MaxValue)
                     throw new InvalidOperationException("Reward policy returned an invalid item instance.");
+                ValidateItemAffixes(item, _catalog);
                 var granted = item.Copy();
                 granted.InstanceId = draft.Run.NextItemSequence++;
                 draft.Run.Inventory.Add(granted);
@@ -721,6 +730,27 @@ namespace IBM.Application
             if (instanceId == 0) return null;
             foreach (var item in run.Inventory) if (item.InstanceId == instanceId) return item;
             return null;
+        }
+
+        internal static void ValidateItemAffixes(ItemInstanceState item, ContentCatalog catalog)
+        {
+            if (!item.Procedural)
+            {
+                if (item.Rarity != ItemRarity.None || item.AffixIds.Length != 0)
+                    throw new InvalidOperationException("Named item has procedural rarity or affixes.");
+                return;
+            }
+            if (item.Rarity < ItemRarity.Common || item.Rarity > ItemRarity.Godlike ||
+                item.AffixIds.Length != (int)item.Rarity)
+                throw new InvalidOperationException("Procedural item rarity and affix count disagree.");
+            var seen = new HashSet<ContentId>();
+            for (int i = 0; i < item.AffixIds.Length; i++)
+            {
+                if (!catalog.Affixes.TryGetValue(item.AffixIds[i], out var affix) ||
+                    (i == 0 && !affix.Primary) ||
+                    (catalog.AffixRepeatPolicy == AffixRepeatPolicy.WithoutReplacement && !seen.Add(affix.Id)))
+                    throw new InvalidOperationException("Invalid procedural item affix: " + item.AffixIds[i]);
+            }
         }
 
         private ProgressMilestone FindMilestone(ContentId id)

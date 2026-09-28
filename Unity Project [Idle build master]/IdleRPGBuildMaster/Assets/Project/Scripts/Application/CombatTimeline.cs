@@ -45,8 +45,8 @@ namespace IBM.Application
         {
             if (source == null || stats == null) throw new ArgumentNullException(source == null ? nameof(source) : nameof(stats));
             if (!source.Active || source.PendingEvents.Count != 0) throw new InvalidOperationException("Encounter is not ready to initialize attacks.");
-            if (source.Effects.Count != 0 || !string.IsNullOrEmpty(source.Boss.PhaseId.Value))
-                throw new NotSupportedException("Ordinary attacks require an encounter without active effects or Boss phases.");
+            if (source.Effects.Count != 0)
+                throw new NotSupportedException("Ordinary attacks require an installed effect handler for active effects.");
             var draft = source.Copy();
             var scheduler = new SimulationScheduler(draft.Time, draft.NextScheduleSequence);
             var ordered = new List<ActorState>(draft.Actors);
@@ -71,12 +71,14 @@ namespace IBM.Application
         public static CombatTimelineResult Advance(CombatState source, SessionRandomState randomState,
             SimTime targetTime, int maxEvents, ICombatStatsProvider stats, ICombatTargetPolicy targets,
             BalanceCatalog balance, int attackPriority, int revivePriority,
-            HeroDownedAttackClockPolicy heroAttackPolicy)
+            HeroDownedAttackClockPolicy heroAttackPolicy, BossCycleController bossCycle = null,
+            EffectLifetimeController effects = null, ICombatAttackModifierPolicy attackModifiers = null)
         {
             if (source == null || randomState == null || stats == null || targets == null || balance == null)
                 throw new ArgumentNullException("A combat state, RNG, stats, target policy and balance are required.");
             if (!source.Active) throw new InvalidOperationException("No active encounter to advance.");
-            if (source.Effects.Count != 0 || !string.IsNullOrEmpty(source.Boss.PhaseId.Value))
+            if ((source.Effects.Count != 0 && effects == null) ||
+                (!string.IsNullOrEmpty(source.Boss.PhaseId.Value) && bossCycle == null))
                 throw new NotSupportedException("Effect and Boss handlers must be installed before this encounter can advance.");
             if (!Enum.IsDefined(typeof(HeroDownedAttackClockPolicy), heroAttackPolicy))
                 throw new ArgumentOutOfRangeException(nameof(heroAttackPolicy));
@@ -88,7 +90,7 @@ namespace IBM.Application
             var random = Pcg32.Restore(randomDraft.Combat.State, randomDraft.Combat.Increment);
             var scheduler = SimulationScheduler.Restore(draft.Time, draft.NextScheduleSequence, draft.PendingEvents);
             var handler = new OrdinaryAttackHandler(draft, scheduler, random, stats, targets, balance,
-                attackPriority, revivePriority, heroAttackPolicy);
+                attackPriority, revivePriority, heroAttackPolicy, bossCycle, effects, attackModifiers);
             var advance = scheduler.AdvanceTo(targetTime, maxEvents, handler);
             draft.Time = scheduler.Now;
             draft.NextScheduleSequence = scheduler.NextSequence;
@@ -109,15 +111,23 @@ namespace IBM.Application
             private readonly int _attackPriority;
             private readonly int _revivePriority;
             private readonly HeroDownedAttackClockPolicy _heroAttackPolicy;
+            private readonly BossCycleController _bossCycle;
+            private readonly EffectLifetimeController _effects;
+            private readonly ICombatAttackModifierPolicy _attackModifiers;
             public readonly List<CombatAttackRecord> Attacks = new List<CombatAttackRecord>();
 
             public OrdinaryAttackHandler(CombatState combat, SimulationScheduler scheduler, Pcg32 random,
                 ICombatStatsProvider stats, ICombatTargetPolicy targets, BalanceCatalog balance,
-                int attackPriority, int revivePriority, HeroDownedAttackClockPolicy heroAttackPolicy)
+                int attackPriority, int revivePriority, HeroDownedAttackClockPolicy heroAttackPolicy,
+                BossCycleController bossCycle, EffectLifetimeController effects,
+                ICombatAttackModifierPolicy attackModifiers)
             {
                 _combat = combat; _scheduler = scheduler; _random = random; _stats = stats;
                 _targets = targets; _balance = balance; _attackPriority = attackPriority;
                 _revivePriority = revivePriority; _heroAttackPolicy = heroAttackPolicy;
+                _bossCycle = bossCycle;
+                _effects = effects;
+                _attackModifiers = attackModifiers;
             }
 
             public void AdvanceContinuous(SimTime from, SimTime to)
@@ -149,18 +159,38 @@ namespace IBM.Application
                     Revive(scheduled, scheduler);
                     return;
                 }
+                if (scheduled.Kind == ScheduledEventKind.BossTransition)
+                {
+                    if (_bossCycle == null) throw new NotSupportedException("Boss transition has no handler.");
+                    _bossCycle.HandleTransition(_combat, scheduler, scheduled);
+                    return;
+                }
+                if (scheduled.Kind == ScheduledEventKind.EffectExpire)
+                {
+                    if (_effects == null) throw new NotSupportedException("Effect expiry has no handler.");
+                    _effects.HandleExpire(_combat, scheduled);
+                    return;
+                }
                 if (scheduled.Kind != ScheduledEventKind.Attack)
                     throw new NotSupportedException("The ordinary-attack slice does not handle " + scheduled.Kind + ".");
                 var attacker = Find(scheduled.Owner.Value);
                 if (attacker.Life != ActorLifeState.Alive || attacker.AttackClockRevision != scheduled.OwnerRevision) return;
                 ulong targetId = _targets.ChooseTarget(attacker, _combat.Actors);
+                if (_attackModifiers != null)
+                    targetId = _attackModifiers.ReplaceTarget(attacker, targetId, _random);
                 var target = Find(targetId);
-                if (target.Life != ActorLifeState.Alive || target.IsHero == attacker.IsHero)
+                bool selfRedirect = !attacker.IsHero && target.InstanceId == attacker.InstanceId;
+                if (target.Life != ActorLifeState.Alive ||
+                    (target.IsHero == attacker.IsHero && !selfRedirect))
                     throw new InvalidOperationException("Target policy returned a dead or friendly actor.");
                 var attackerStats = _stats.Resolve(attacker);
                 var targetStats = _stats.Resolve(target);
+                var block = _bossCycle == null ? targetStats.Block :
+                    _bossCycle.EffectiveBlock(_combat, target, targetStats.Block);
+                if (_attackModifiers != null)
+                    block = _attackModifiers.ModifyBlock(attacker, target, block, _random);
                 var attack = BasicAttackResolver.Resolve(attackerStats, targetStats, target.Hp,
-                    targetStats.Block, _random, _balance);
+                    block, _random, _balance);
                 Attacks.Add(new CombatAttackRecord(scheduler.Now, attacker.InstanceId, target.InstanceId, attack));
                 bool heroBecameDowned = false;
                 if (attack.Hit)
@@ -184,6 +214,8 @@ namespace IBM.Application
                             if (!enemyAlive) _combat.Active = false;
                         }
                     }
+                    if (attacker.IsHero && _bossCycle != null)
+                        _bossCycle.OnSuccessfulDirectHeroHit(_combat, scheduler, target.InstanceId);
                 }
                 if (_combat.Active && attacker.Life == ActorLifeState.Alive && attackerStats.AttacksPerSecond > 0d)
                 {
@@ -203,8 +235,11 @@ namespace IBM.Application
                     if (entry.Kind == ScheduledEventKind.BossTransition) return true;
                     if (entry.Kind != ScheduledEventKind.Attack && entry.Kind != ScheduledEventKind.EffectExpire &&
                         entry.Kind != ScheduledEventKind.PeriodicTick) return false;
-                    var owner = Find(entry.Owner.Value);
-                    return entry.Kind == ScheduledEventKind.Attack || !owner.IsHero;
+                    if (entry.Kind == ScheduledEventKind.Attack) return true;
+                    foreach (var effect in _combat.Effects)
+                        if (effect.InstanceId == entry.Owner.Value)
+                            return !Find(effect.OwnerActorId).IsHero;
+                    throw new InvalidOperationException("Timed event has no effect owner.");
                 });
                 _combat.PausedEvents.AddRange(paused);
                 var rate = CombatMath.DeathRegenerationPerSecond(_stats.Resolve(hero), _balance);

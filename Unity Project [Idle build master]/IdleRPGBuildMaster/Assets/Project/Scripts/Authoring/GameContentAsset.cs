@@ -56,11 +56,50 @@ namespace IBM.Authoring
         public AuthoredNumber magnitude = new AuthoredNumber();
         [Range(0f, 1f)] public double probability = 1d;
         public string[] childEffectIds = Array.Empty<string>();
+        public CombatStat statTarget;
+        public StatModifierKind statKind;
+        public CombatStat sourceStat;
+        public double durationSeconds;
     }
     [Serializable] public sealed class PowerRecord { public string id; public string[] effectIds = Array.Empty<string>(); }
     [Serializable] public sealed class ItemRecord { public string id; public string slot; public string[] effectIds = Array.Empty<string>(); }
     [Serializable] public sealed class LootEntryRecord { public string itemId; public double weight; }
     [Serializable] public sealed class LootTableRecord { public string id; public LootEntryRecord[] entries = Array.Empty<LootEntryRecord>(); }
+    [Serializable] public sealed class BossCycleRecord
+    {
+        public string id, normalPhaseId, fortifyPhaseId, exposedPhaseId;
+        public double normalDurationSeconds, exposedDurationSeconds;
+        public long fortifyBreakHits;
+        public AuthoredNumber normalBlockMultiplier = new AuthoredNumber();
+        public AuthoredNumber fortifyBlockMultiplier = new AuthoredNumber();
+        public AuthoredNumber exposedBlockMultiplier = new AuthoredNumber();
+    }
+    [Serializable] public sealed class RewardRollRecord
+    {
+        public string lootTableId;
+        [Range(0f, 1f)] public double chance;
+        public int rollCount = 1;
+        public int itemLevel = 1;
+        public bool procedural;
+        public double[] rarityWeights = Array.Empty<double>();
+    }
+    [Serializable] public sealed class EncounterRewardProfileRecord
+    {
+        public string encounterId;
+        public RewardRollRecord[] rolls = Array.Empty<RewardRollRecord>();
+    }
+    [Serializable] public sealed class PowerExpModifierRecord
+    {
+        public string powerId;
+        public AuthoredNumber multiplier = new AuthoredNumber();
+    }
+    [Serializable] public sealed class AffixRecord
+    {
+        public string id;
+        public CombatStat target;
+        public AuthoredNumber magnitudePerPower = new AuthoredNumber();
+        public bool primary;
+    }
 
     // Unity authoring data never enters the simulation. Compile and validate before session creation.
     [CreateAssetMenu(fileName = "GameContent", menuName = "Idle Build Master/Content/Game Catalog")]
@@ -77,6 +116,11 @@ namespace IBM.Authoring
         public PowerRecord[] powers = Array.Empty<PowerRecord>();
         public ItemRecord[] items = Array.Empty<ItemRecord>();
         public LootTableRecord[] lootTables = Array.Empty<LootTableRecord>();
+        public BossCycleRecord[] bossCycles = Array.Empty<BossCycleRecord>();
+        public EncounterRewardProfileRecord[] rewardProfiles = Array.Empty<EncounterRewardProfileRecord>();
+        public PowerExpModifierRecord[] powerExpModifiers = Array.Empty<PowerExpModifierRecord>();
+        public AffixRecord[] affixes = Array.Empty<AffixRecord>();
+        public AffixRepeatPolicy affixRepeatPolicy;
 
         public ContentCatalog Compile(ISet<EffectOperation> supportedOperations = null, BalanceCatalog balance = null)
         {
@@ -84,7 +128,9 @@ namespace IBM.Authoring
                 throw new InvalidOperationException(SourceLabel + ": unsupported content schema or version.");
             if (effects == null) throw new InvalidOperationException(SourceLabel + ": effect array is null.");
             for (int i = 0; i < effects.Length; i++)
-                if (effects[i] != null && (supportedOperations == null || !supportedOperations.Contains(effects[i].operation)))
+                if (effects[i] != null &&
+                    !(effects[i].operation == EffectOperation.ModifyStat && effects[i].trigger == EffectTrigger.Passive) &&
+                    (supportedOperations == null || !supportedOperations.Contains(effects[i].operation)))
                     throw new InvalidOperationException(SourceLabel + ": unsupported effect operation at effects[" + i + "]: " + effects[i].operation);
             var locationDefs = Convert(locations, "location", x => new LocationDefinition(Id(x.id), Ids(x.stageIds),
                 x.progressUnits, Convert(x.milestones, "milestone", m => new ProgressMilestone(Id(m.id), m.point,
@@ -92,12 +138,27 @@ namespace IBM.Authoring
             var stageDefs = Convert(stages, "stage", x => new StageDefinition(Id(x.id), Id(x.locationId), Ids(x.encounterIds), x.baseRequiredEncounters, x.isBossStage));
             var encounterDefs = Convert(encounters, "encounter", x => new EncounterDefinition(Id(x.id), Ids(x.enemyIds), x.expBudget.Compile(), OptionalId(x.lootTableId)));
             var enemyDefs = Convert(enemies, "enemy", x => new EnemyDefinition(Id(x.id), x.maxHp.Compile(), x.minDamage.Compile(), x.maxDamage.Compile(), SimDuration.FromSeconds(x.attackIntervalSeconds), x.tags, OptionalId(x.behaviorId)));
-            var effectDefs = Convert(effects, "effect", x => new EffectDefinition(Id(x.id), x.trigger, x.operation, x.magnitude.Compile(), x.probability, Ids(x.childEffectIds)));
+            var effectDefs = Convert(effects, "effect", x => new EffectDefinition(Id(x.id), x.trigger,
+                x.operation, x.magnitude.Compile(), x.probability, Ids(x.childEffectIds),
+                x.statTarget, x.statKind, x.sourceStat, SimDuration.FromSeconds(x.durationSeconds)));
             var powerDefs = Convert(powers, "power", x => new PowerDefinition(Id(x.id), Ids(x.effectIds)));
             var itemDefs = Convert(items, "item", x => new ItemDefinition(Id(x.id), x.slot, Ids(x.effectIds)));
             var lootDefs = Convert(lootTables, "loot table", x => new LootTableDefinition(Id(x.id), Convert(x.entries, "loot entry", e => new LootEntry(Id(e.itemId), e.weight))));
+            var bossDefs = Convert(bossCycles, "boss cycle", x => new BossCycleDefinition(Id(x.id),
+                Id(x.normalPhaseId), Id(x.fortifyPhaseId), Id(x.exposedPhaseId),
+                SimDuration.FromSeconds(x.normalDurationSeconds), SimDuration.FromSeconds(x.exposedDurationSeconds),
+                x.fortifyBreakHits, x.normalBlockMultiplier.Compile(),
+                x.fortifyBlockMultiplier.Compile(), x.exposedBlockMultiplier.Compile()));
+            var rewardDefs = Convert(rewardProfiles, "reward profile", x =>
+                new EncounterRewardProfileDefinition(Id(x.encounterId), Convert(x.rolls, "reward roll", r =>
+                    new RewardRollDefinition(Id(r.lootTableId), r.chance, r.rollCount, r.itemLevel,
+                        r.procedural, r.rarityWeights))));
+            var expDefs = Convert(powerExpModifiers, "Power EXP modifier", x =>
+                new PowerExpModifierDefinition(Id(x.powerId), x.multiplier.Compile()));
+            var affixDefs = Convert(affixes, "affix", x => new AffixDefinition(Id(x.id),
+                x.target, x.magnitudePerPower.Compile(), x.primary));
             try { return new ContentCatalog(locationDefs, stageDefs, encounterDefs, enemyDefs, effectDefs, powerDefs, itemDefs, lootDefs,
-                Id(startingStageId), balance); }
+                Id(startingStageId), balance, bossDefs, rewardDefs, expDefs, affixDefs, affixRepeatPolicy); }
             catch (Exception error) when (error is ArgumentException || error is InvalidOperationException)
             { throw new InvalidOperationException(SourceLabel + ": content catalog validation failed: " + error.Message, error); }
         }

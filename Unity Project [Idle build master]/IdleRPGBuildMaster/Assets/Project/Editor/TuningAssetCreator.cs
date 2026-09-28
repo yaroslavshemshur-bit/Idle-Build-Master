@@ -21,6 +21,7 @@ namespace IBM.Editor
             EnsureOfflineBaseline();
             EnsureCombatBaseline();
             EnsurePrimaryStatBaseline();
+            EnsureGearBaseline();
             AssetDatabase.SaveAssets();
         }
 
@@ -85,6 +86,16 @@ namespace IBM.Editor
                 AddIfMissing(entries, "primary.upgrade.cost.scale." + stat, IBM.Domain.BalanceValueKind.Integer, "1", "0");
             }
             AddIfMissing(entries, "primary.upgrade.cost.power", IBM.Domain.BalanceValueKind.Integer, "2", "0");
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void EnsureGearBaseline()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<BalanceTuningAsset>(Folder + "/BalanceTuning.asset");
+            var serialized = new SerializedObject(asset);
+            var entries = serialized.FindProperty("parameters");
+            AddIfMissing(entries, "gear.affix.level_divisor", IBM.Domain.BalanceValueKind.Integer, "5", "0");
+            AddIfMissing(entries, "gear.affix.min_power", IBM.Domain.BalanceValueKind.Integer, "1", "0");
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
