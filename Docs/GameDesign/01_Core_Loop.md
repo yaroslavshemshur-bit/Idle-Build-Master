@@ -1,6 +1,6 @@
 # 01 — Core Loop
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-27
 
 ## Core loop
@@ -312,21 +312,30 @@ This is a major driver of long active sessions.
 
 ## Offline loop
 
-Before leaving, the player effectively configures:
+Before leaving, the player can configure an already-completed normal Stage as an Offline Farm Target.
 
-**“Farm this known location.”**
+Offline farming is deliberately simpler than active combat:
 
-Offline progress can then generate routine gains from already understood content.
+- the active encounter is frozen;
+- offline does not simulate enemy count, combat DPS or deaths;
+- routine rewards are generated from the selected Stage's depth/reward profile;
+- baseline offline efficiency is 50%;
+- baseline offline cap is 6 hours;
+- the minimum offline encounter time is 60 seconds.
+
+At baseline this produces one virtual Stage-encounter clear every 120 seconds.
 
 When the player returns:
 
 1. Claim offline gains.
-2. Review drops / Collection progress.
-3. Make new decisions.
-4. Rebuild if useful.
+2. Review EXP, drops and future Collection progress.
+3. Resume the exact saved combat state.
+4. Make new strategic decisions.
 5. Push or assign a new farming target.
 
-Offline time should feed the decision loop rather than replace it.
+Offline time should feed the decision loop rather than replace active build decisions.
+
+Full formula: `Docs/Economy/01_Offline_Farming.md`.
 
 ## Desired session behavior
 
@@ -360,6 +369,5 @@ Do not lock these yet:
 - IAP structure;
 - gacha;
 - PvP;
-- exact offline duration cap.
 
 The next design task is to define **the structure of one run and the progression of the first region** so these later systems have a concrete foundation.
