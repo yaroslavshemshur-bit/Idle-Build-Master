@@ -118,21 +118,52 @@ Remote content later uses download -> integrity/schema/reference validation -> s
 
 ## 7. Offline calculation contract
 
-Approved behavior: preserve the active fight without advancing its combat timers; calculate separate farm rewards, including EXP, from the configured accessible completed stage; resume the saved fight after return. Do not spend EXP, choose Powers, equip gear or push new progression automatically.
+Approved behavior: preserve the active fight without advancing its combat timers; calculate separate farm rewards from an eligible completed normal Stage; resume the saved fight after return. Do not spend EXP, choose Powers, equip gear or push new progression automatically.
+
+Authoritative game-design source:
+
+`Docs/Economy/01_Offline_Farming.md`
+
+Baseline design constants:
+
+```
+MaxOfflineTime = 6 hours
+OfflineEfficiency = 0.50
+MinOfflineEncounterTime = 60 seconds
+```
+
+The offline model intentionally does **not** inspect or estimate:
+
+- combat DPS;
+- survivability;
+- deaths;
+- enemy count;
+- encounter composition;
+- Boss phases;
+- proc frequency;
+- AoE efficiency.
+
+Offline value is driven by the selected completed Stage's normal reward profile. The evaluator only determines virtual clear entitlement.
 
 Data contract:
 
-```text
+```
 OfflineRequest
   operationId, profileId, baseStateRevision
   absenceStart, absenceEnd, timeSource
   farmingAssignmentId, catalog/rulesVersion
-  frozenBuildInputs, permanentModifierRevision
+  permanentModifierRevision
   offlineRngState
+  residualClearProgress
 
-EfficiencyResult
-  eligible, effectiveClearRate, modelVersion
-  formulaInputsHash, validityReason
+OfflineClearResult
+  eligible
+  eligibleSeconds
+  effectiveOfflineEfficiency
+  virtualClears
+  newResidualClearProgress
+  modelVersion
+  validityReason
 
 OfflineRewardPlan
   operationId, baseStateRevision, accountedThrough
@@ -140,15 +171,73 @@ OfflineRewardPlan
   nextOfflineRngState, modelVersion, catalogVersion
 ```
 
-An `IOfflineEfficiencyModel` is a pure analytical evaluator of build inputs, stage data, permanent modifiers and a versioned game-design formula (A12). No warm-up fight, event-driven combat replay, Monte Carlo or sampled simulation is permitted for production offline efficiency. Do not substitute an observed clear-rate heuristic unless subsequently approved by game design. Cache by formula version and canonical input hash; evaluation must not mutate the frozen fight or consume combat RNG.
+The first implementation formula is:
 
-The actual efficiency formula, cap, coefficients, supported effect families and fallback behavior belong to game design. Technical implementation supplies inputs, validation, evaluator and caching, not a guessed damage/HP formula. Missing required policy or an unsupported mechanic returns `ModelUnavailable`/`UnsupportedMechanic` and preserves the pending absence; it must not silently consume the entitlement with zero rewards.
+```
+EligibleSeconds =
+min(max(AbsenceSeconds, 0), MaxOfflineTime)
 
-The planner reuses loot generation, reward definitions and permanent modifier evaluation. It must retain fractional accounting residuals where needed so splitting absence into intervals does not repeatedly lose or duplicate entitlement under the selected model. Random outcomes follow the pinned offline RNG contract; avoid promising exact sequence equivalence across model changes.
+EffectiveOfflineEfficiency =
+clamp(BaseOfflineEfficiency × OfflineEfficiencyModifier, 0, 1)
 
-Apply a plan only to the matching revision/assignment, atomically with its RNG state and `accountedThrough` cursor. Retrying the same operation returns its stored result, not another roll. Acknowledging a summary screen is separate from granting the rewards; dismiss/reopen cannot grant twice.
+ClearProgress =
+PreviousResidual
++ EligibleSeconds
+× EffectiveOfflineEfficiency
+/ MinOfflineEncounterTime
 
-If offline gains unlock permanent effects that could change the frozen fight, route those changes through an explicit activation policy. Do not quietly rescale saved HP or boss state. Inventory overflow, reward activation and cap semantics remain design dependencies.
+OfflineClears = floor(ClearProgress)
+
+NewResidual =
+ClearProgress - OfflineClears
+```
+
+At baseline:
+
+```
+OfflineClears per 6h = 180
+```
+
+At future 100% efficiency:
+
+```
+OfflineClears per 6h = 360
+```
+
+The 60-second minimum therefore remains the maximum offline clear rate unless game design explicitly changes it.
+
+Target eligibility/fallback:
+
+1. explicit eligible completed normal Stage selected by the player;
+2. current completed Stage when Auto Push is OFF;
+3. highest completed normal Stage accessible in the current run;
+4. otherwise no offline farming.
+
+Bosses are never offline farm targets.
+
+The planner reuses the Stage's normal reward definitions. It may resolve:
+
+- EXP;
+- procedural gear;
+- rarity;
+- named-item drops;
+- future resources;
+- future Collection progress;
+- future passive achievement progress.
+
+Use the dedicated offline RNG stream.
+
+Do not create special reduced offline loot tables unless design explicitly introduces them later.
+
+Reward modifiers that already existed when the absence began may apply according to their normal eligibility rules. Rewards earned during the absence do not modify later virtual clears from the same absence.
+
+The evaluator must retain fractional clear progress so splitting one absence into several application sessions cannot repeatedly lose or duplicate entitlement.
+
+Apply a reward plan only to the matching revision/assignment, atomically with its RNG state and `accountedThrough` cursor. Retrying the same operation returns the stored result rather than rolling again.
+
+Acknowledging the Offline Rewards UI is separate from granting the rewards. Dismiss/reopen cannot grant twice.
+
+If offline gains unlock permanent effects, those effects activate only after the offline reward transaction. They do not retroactively alter the same offline period or the frozen combat state.
 
 Local elapsed-time handling clamps negative elapsed time to zero and records suspicious wall-clock changes diagnostically. No local algorithm can establish trusted elapsed time against a user-controlled device. In connected mode, use server-accepted time and an idempotent server reward operation.
 

@@ -1,6 +1,6 @@
 # 02 — Run & Progression Structure
 
-**Status:** Draft v0.6  
+**Status:** Draft v0.7  
 **Date:** 2026-09-28
 
 ## Purpose of a run
@@ -716,22 +716,58 @@ The important contrast is:
 
 ## Offline progression
 
-Offline play should support farming but not solve build decisions.
+Offline play supports routine farming but never solves build decisions.
 
-Expected offline gains:
+The active encounter is frozen during absence.
 
+A separate eligible completed normal Stage is used as the Offline Farm Target.
+
+First implementation baseline:
+
+```
+MaxOfflineTime = 6 hours
+OfflineEfficiency = 50%
+MinOfflineEncounterTime = 60 seconds
+```
+
+At baseline:
+
+```
+one virtual encounter clear every 120 seconds
+```
+
+Offline clear speed does **not** depend on:
+
+- enemy count;
+- encounter composition;
+- player DPS;
+- survivability;
+- deaths;
+- Boss mechanics.
+
+The value of offline farming comes primarily from the selected Stage's depth and normal reward profile.
+
+Offline can grant:
+
+- EXP;
+- eligible procedural gear;
+- named-item drops;
 - routine resources;
-- Collection progress;
-- eligible drops;
-- passive achievement progress.
+- future Collection progress;
+- future passive achievement progress.
 
-Open question:
+Offline does not:
 
-Whether offline play grants EXP directly.
+- spend EXP;
+- equip gear;
+- select Powers;
+- advance World Progress;
+- clear a new Stage for the first time;
+- defeat required Bosses.
 
-Offline EXP can increase the spendable EXP pool, but it must not advance World Progress or automatically select Powers.
+Full formula and fallback target rules are defined in:
 
-Offline should never automatically construct the player's build.
+`Docs/Economy/01_Offline_Farming.md`.
 
 ## Locked decisions from v0.2
 
@@ -757,6 +793,8 @@ The following are currently considered design decisions rather than hypotheses:
 18. Stage Compression permanently reduces required encounters per Stage from a baseline of 10 toward a minimum of 1.
 19. Stage Compression never skips a required Location Boss.
 20. World Progress and EXP are separate systems; there is no XP-driven Run Level.
+21. Offline farming grants routine rewards from an already-completed normal Stage without advancing the frozen combat or World Progress.
+22. Offline baseline is 6h cap, 50% efficiency and 60s minimum encounter time; enemy count/composition do not affect offline clear rate.
 
 ## Open questions for later sections
 
@@ -767,7 +805,6 @@ The following are currently considered design decisions rather than hypotheses:
 5. Exact EXP income and primary-stat upgrade cost curves.
 6. Final Power-choice cadence beyond the reference-first early-game baseline.
 7. Starting-foundation implementation.
-8. Offline EXP behavior.
 9. Exact first-Location encounter composition and teaching sequence.
 10. Exact source / cost of Stage Compression progression.
 11. Whether Overkill-style progression is a Power, permanent upgrade, or both.

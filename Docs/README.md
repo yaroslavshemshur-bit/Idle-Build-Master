@@ -42,6 +42,7 @@ Planned next:
 ### Economy
 
 - [00 — Reference Economy Baseline](Economy/00_Reference_Economy_Baseline.md)
+- [01 — Offline Farming](Economy/01_Offline_Farming.md)
 
 Planned next:
 
