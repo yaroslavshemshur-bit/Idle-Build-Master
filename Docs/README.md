@@ -50,6 +50,7 @@ Planned next:
 ### Technical
 
 - [00 — Architecture Requirements & Future-Proofing](Technical/00_Architecture_Requirements.md)
+- [01 — Engineering Baseline & Chat Handoff](Technical/01_Engineering_Handoff.md)
 
 ### Production
 

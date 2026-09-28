@@ -1,0 +1,36 @@
+# Unity-generated data. Keep Assets (including .meta), Packages and ProjectSettings.
+**/[Ll]ibrary/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Ll]ogs/
+**/[Bb]uild/
+**/[Bb]uilds/
+**/[Uu]ser[Ss]ettings/
+**/[Mm]emoryCaptures/
+**/[Pp]rofilerCaptures/
+**/[Rr]ecordings/
+**/[Tt]est[Rr]esults/
+**/[Ee]xported[Oo]bj/
+**/[Gg]radle[Oo]ut/
+**/.gradle/
+
+# IDE-generated files and local state.
+**/.vs/
+**/.vscode/
+**/.idea/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.opendb
+*.VC.db
+
+# OS-generated files.
+.DS_Store
+Thumbs.db
+Desktop.ini
