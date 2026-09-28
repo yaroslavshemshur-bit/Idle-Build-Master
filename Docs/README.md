@@ -47,6 +47,10 @@ Planned next:
 
 - Balance Principles
 
+### Technical
+
+- [00 — Architecture Requirements & Future-Proofing](Technical/00_Architecture_Requirements.md)
+
 ### Production
 
 Will be added after the MVP gameplay skeleton is stable:
