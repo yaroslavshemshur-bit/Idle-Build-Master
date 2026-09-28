@@ -1,6 +1,6 @@
 # 03 — Combat
 
-**Status:** Draft v0.5  
+**Status:** Draft v0.6  
 **Date:** 2026-09-28
 
 ## Combat philosophy
@@ -98,6 +98,19 @@ A normal direct hit rolls damage between Min Damage and Max Damage.
 MaxHealth = 20 + 100 * Vitality
 ```
 
+### Current Health when Max Health changes
+
+**Project rule:** if resolved Max Health changes while an actor is already active, preserve current Health percentage.
+
+```
+HealthRatio = OldHealth / OldMaxHealth
+NewHealth = clamp(HealthRatio × NewMaxHealth, 0, NewMaxHealth)
+```
+
+This applies to Vitality changes, Max Health buffs/debuffs, equipment changes and temporary-effect expiry.
+
+The rebase is not Damage, Healing, Death or Revive and does not emit those events.
+
 ### Block
 
 Raw Block rating:
@@ -154,23 +167,40 @@ There is no second independent dodge roll.
 
 ### Attack Speed
 
-Reference rating:
+Reference-style Attack Speed is a rating converted into attacks per second.
+
+Base rating:
 
 ```
-AttackSpeedRating = 1 + Agility / 100
+AttackSpeedRatingBase = 1 + Agility / 100
 ```
 
-Effective attacks per second:
+Gear and direct additions modify the rating before conversion.
+
+Effects worded as `Attack Speed × X` multiply the **Attack Speed Rating**, matching the reference stat semantics.
 
 ```
-AttacksPerSecond = log2(2 * AttackSpeedRating)
+AttackSpeedRating =
+max(0, AttackSpeedRatingBase + FlatAttackSpeedRating)
+× AttackSpeedRatingMultipliers
 ```
+
+Then:
+
+```
+AttacksPerSecond =
+max(0, log2(2 × AttackSpeedRating))
+```
+
+If `AttackSpeedRating <= 0`, attacks/sec is 0.
+
+Therefore Stone Form's `Attack Speed ×0.5` applies before the logarithmic conversion.
 
 Idle Superpowers hard-caps actual attacks at 30 attacks/sec.
 
-**Project deviation:** Idle Build Master keeps the logarithmic diminishing-return curve but does not use a gameplay hard cap by design.
+**Project deviation:** Idle Build Master keeps the reference rating + logarithmic curve but does not use the 30 attacks/sec gameplay cap.
 
-If extremely high values become technically expensive, attacks may be simulated in aggregate while preserving the mathematical result.
+If extremely high values become technically expensive, attacks may be aggregated while preserving mathematical outcomes.
 
 ### Regeneration
 
@@ -220,6 +250,36 @@ Examples of future interactions:
 The normal combat UI can present this simply as:
 
 **Damage: X–Y**
+
+## Damage basis for percentage effects
+
+Reference-style effects often say “X% of damage” on hit or when getting hit.
+
+The reference confirms that mitigation such as Block participates before these damage-based effects, but public documentation does not fully specify every overkill/fatal-prevention edge case.
+
+**Project rule:**
+
+```
+ResolvedDamage =
+damage after outgoing modifiers
+and after target Block / mitigation
+but before clamping to current HP
+and before fatal-prevention replacement
+```
+
+Generic “X% of damage” effects use `ResolvedDamage`.
+
+`ActualHpLost` is tracked separately and is used only when an effect explicitly says Health lost / HP lost.
+
+Therefore:
+
+- Block lowers percentage-based lifesteal / reactive damage;
+- overkill remains part of generic `ResolvedDamage`;
+- fatal prevention can change the final HP result without changing the already-resolved damage basis.
+
+Reactive damage carries an explicit `Reactive` origin. By default it can damage/kill and participate in normal death resolution, but does not recursively qualify for generic reflect/counter triggers unless an effect explicitly allows Reactive origins.
+
+This prevents reflect loops while preserving legitimate reactive kills.
 
 ## Basic attack
 
@@ -382,7 +442,7 @@ Examples:
 - partially ignore enemy Block;
 - increase Block effectiveness conditionally.
 
-Exact formula is deferred to balance work.
+The authoritative Block formula is the baseline formula defined above; later Powers may modify or reinterpret it.
 
 ## Attack Speed
 
@@ -439,7 +499,17 @@ This deliberately allows the player to slowly chip away at an enemy or boss acro
 
 By default, enemies do not regenerate while the hero is downed, matching the reference behavior.
 
-A specific enemy or boss mechanic may explicitly override this rule.
+**Project timing rule:** while the hero is downed:
+
+- enemy attack clocks are paused;
+- Boss phase clocks/transitions are paused;
+- timed effects on enemies are paused;
+- enemy Regeneration is paused;
+- hero Death Regeneration continues.
+
+These clocks resume when the hero revives.
+
+A specific enemy or Boss mechanic may explicitly override this rule.
 
 Death is a build-state reset, not an encounter failure.
 
@@ -455,7 +525,7 @@ Examples:
 - EXP-purchased primary-stat upgrades;
 - Powers;
 - gear;
-- permanent effects granted by current Powers.
+- persistent effects granted by current Powers.
 
 ### Temporary combat state
 
@@ -467,10 +537,25 @@ Examples:
 - rage;
 - temporary damage buffs;
 - temporary defensive buffs;
-- temporary debuffs;
-- other timed combat-state effects.
+- timed debuffs.
 
-By default, death clears temporary combat state.
+**Reference-aligned rule:** hero temporary buffs/stacks are not automatically cleared just because one enemy or encounter ends.
+
+They may carry through:
+
+- the next encounter;
+- Stage transitions;
+- deliberate movement to another accessible Stage / Location;
+
+as long as their own duration/stack rules still permit them.
+
+This supports the reference-style pattern of building up buffs on easier content and then pushing harder content.
+
+Enemy-bound effects disappear with that enemy instance.
+
+A specific effect may explicitly declare an `EncounterBound` lifetime.
+
+By default, **hero death clears temporary combat state**.
 
 Example:
 
@@ -481,10 +566,6 @@ Stacks up to 500 times.
 On death:
 
 **500 stacks → 0**
-
-This creates meaningful value for survivability.
-
-A high-DPS build may depend on maintaining momentum for several minutes.
 
 ## Death as a build hook
 
@@ -517,7 +598,6 @@ On death, clear from the hero:
 Do not clear:
 
 - Powers;
-- Run Level;
 - gear;
 - persistent run modifiers;
 - enemy current HP;
@@ -564,59 +644,76 @@ Those rules override the default.
 
 ## Stat calculation order
 
-To avoid ambiguous Power interactions, stats resolve in layers.
+Stats resolve through a dependency graph.
 
-### Layer 1 — Primary attributes
+The important rule is:
 
-Resolve flat/additive changes to:
+> Temporary/permanent is a lifetime property, not a separate final math layer.
 
-- Strength;
-- Vitality;
-- Agility;
-- Dexterity.
+A temporary Strength multiplier participates in Strength resolution and therefore propagates into Max Damage and Block.
 
-Then apply multiplicative modifiers to those attributes.
+### Step 1 — resolve primary attributes
 
-### Layer 2 — Baseline derived stats
+For each primary attribute:
 
-Calculate:
+1. base value;
+2. flat/additive changes;
+3. multiplicative modifiers.
 
-- Min Damage;
-- Max Damage;
-- Max Health;
-- Block;
-- Accuracy;
-- Evasion;
-- Attack Speed;
-- Regeneration.
+All active modifiers participate, including temporary ones.
 
-using the baseline formulas.
+This produces resolved STR / VIT / AGI / DEX.
 
-### Layer 3 — Derived-stat conversions and additions
+### Step 2 — resolve derived stats in dependency order
 
-Apply effects such as:
+Each derived stat is a node in an acyclic dependency graph.
 
-- add Min Damage based on Accuracy;
-- add Strength based on missing HP;
-- add Max Damage based on another resolved stat.
+For a derived stat:
+
+1. evaluate its baseline formula from resolved dependencies;
+2. add direct additions;
+3. add conversions from **fully resolved source stats**;
+4. apply the target stat's multipliers.
+
+Then the result becomes available to downstream dependencies.
+
+### Eagle Eye example
+
+```
+Accuracy =
+(100 + resolved DEX + direct Accuracy additions)
+× Accuracy multipliers
+
+MinDamage =
+5 + resolved DEX / 2
++ 20% × resolved Accuracy
+
+then apply Min Damage multipliers
+```
+
+Therefore Eagle Eye's `Accuracy ×5` improves the Accuracy value consumed by Accuracy → Min Damage.
+
+### Hobgoblin Bulwark example
+
+```
+Block =
+(STR / 10 + VIT / 2 + additions)
+× Block multipliers
+
+MaxDamage =
+baseline Max Damage
++ 50% × resolved Block
+
+then apply Max Damage multipliers
+```
+
+Therefore Stone Form's `Block ×5` improves Bulwark, and a later `Max Damage ×10` multiplies the converted result.
+
+### Dependency safety
 
 Dependencies must be acyclic.
 
-If a Power would create a circular dependency, it requires an explicit custom resolution rule and cannot rely on generic stat calculation.
-
-### Layer 4 — Derived-stat multipliers
-
-Apply multiplicative modifiers such as:
-
-- Max Damage ×10;
-- Block ×5;
-- Regeneration ×0.25.
-
-### Layer 5 — temporary state
-
-Apply currently active timed buffs/debuffs using the same additive-then-multiplicative rule for the stat they modify.
-
-This order should be data-driven so individual Powers do not implement their own private stat math.
+A content definition that creates a cycle must either be rejected or use an explicitly authored custom resolver. There is no generic “iterate until stable” fallback.
 
 ## Crowd Control
 
@@ -872,9 +969,9 @@ When an actor's attack becomes ready:
 9. apply outgoing damage modifiers
 10. resolve Block-bypass effects
 11. apply target Block reduction
-12. apply HP damage
-13. if the hit would be fatal, resolve fatal-hit prevention effects
-14. emit **OnDamageDealt / OnDamageTaken**
+12. calculate and apply the proposed HP transition inside the current action transaction
+13. if the proposed result is fatal, resolve fatal-hit prevention and replace/restore the action's final HP result as required
+14. commit the final HP transition, then emit **OnDamageDealt / OnDamageTaken**
 15. emit **OnHit / OnHitTaken**
 16. resolve triggered effects through the event queue
 17. resolve deaths caused by the attack or its triggered effects
@@ -1015,6 +1112,13 @@ The production goal is to create a large amount of build content without requiri
 33. Fresh-run starting primary stats are STR/VIT/AGI/DEX = 1/1/1/1.
 34. First Boss baseline stats are 109 STR / 238 VIT / 64 AGI / 89 DEX.
 35. First Boss cycle is 6s Normal → Fortify (Block ×5, break after 16 successful hits) → 6s Exposed (Block ×0.25).
+36. Attack Speed multipliers modify Attack Speed Rating before the logarithmic attacks/sec conversion, matching reference stat semantics.
+37. Temporary modifiers participate at their target stat's normal calculation layer.
+38. Derived conversions read fully resolved source stats and are added before the target stat's own multiplier.
+39. Hero temporary buffs/stacks persist across encounters and Stage transitions by default; death clears them.
+40. Max Health changes preserve current Health percentage without emitting Damage/Heal events.
+41. Generic “% of damage” effects use post-mitigation ResolvedDamage before current-HP clamping; ActualHpLost remains distinct.
+42. Enemy attack/phase/effect clocks pause while the hero is downed unless explicitly overridden.
 
 ## Open questions for later
 
