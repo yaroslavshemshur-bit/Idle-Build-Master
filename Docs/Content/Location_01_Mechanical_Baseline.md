@@ -1,6 +1,6 @@
 # Location 01 — Goblin Outskirts / Goblin Camp
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -195,12 +195,81 @@ All six equipment slots exist from the beginning.
 
 Drops start at cumulative encounter 14, approximately the normalized reference level-10 milestone.
 
-From that point onward:
+### Procedural drop chances
+
+```
+Normal encounter = 20% procedural gear chance
+Stage 8 Hobgoblin Guard = 35% procedural gear chance
+Goblin Chieftain = 100% procedural gear drop
+```
+
+Normal and Stage 8 procedural rarity:
+
+```
+Common 60%
+Uncommon 25%
+Rare 10%
+Epic 4%
+Legendary 0.9%
+Godlike 0.1%
+```
+
+Goblin Chieftain guaranteed item rarity:
+
+```
+Rare 60%
+Epic 30%
+Legendary 9%
+Godlike 1%
+```
+
+The Boss therefore always gives at least Rare gear and has strongly improved high-rarity odds.
+
+### Item Level
+
+```
+ItemLevel = source reference-equivalent level
+```
+
+There is no separate Item Level RNG in the first Location.
+
+### Affix count
+
+```
+Common = 1
+Uncommon = 2
+Rare = 3
+Epic = 4
+Legendary = 5
+Godlike = 6
+```
+
+First affix is always one of:
+
+```
+STR / VIT / AGI / DEX
+```
+
+Later affixes can use the 12-stat pool defined in the Gear document.
+
+### Named Stage 8 farm item
+
+Hobgoblin Guard has an independent:
+
+```
+5% chance → Hobgoblin Bulwark
+```
+
+The named-item roll does not replace the normal 35% procedural gear roll.
+
+The Stage therefore becomes the first explicit targeted gear farm in the game.
+
+From gear unlock onward:
 
 - any of the six slots can drop;
 - ordinary equipment uses procedural affixes;
-- named build-defining items are allowed from authored sources;
-- encounter composition, not raw enemy count, determines the total reward budget.
+- encounter composition, not raw enemy count, determines EXP reward;
+- rarity affects affix count, not affix magnitude.
 
 ## First Boss
 
@@ -376,3 +445,10 @@ A player should already feel that Powers and stat allocation matter, but the fir
 13. First Boss is the Goblin Chieftain.
 14. Goblin Chieftain visually communicates Fortify through a large shield and a 16-hit break indicator.
 15. First Location art should primarily reuse two base bodies plus equipment/scale/pose variation.
+16. Common through Godlike use 1 through 6 affixes respectively.
+17. Item Level equals source reference-equivalent level in this Location.
+18. AffixPower uses max(1, round(ItemLevel / 5)).
+19. Normal encounters have a 20% procedural gear chance after unlock.
+20. Stage 8 Hobgoblin Guard has a 35% procedural gear chance plus an independent 5% Hobgoblin Bulwark roll.
+21. Normal/Elite rarity chances are 60/25/10/4/0.9/0.1% from Common through Godlike.
+22. Goblin Chieftain guarantees one procedural item with Rare/Epic/Legendary/Godlike chances of 60/30/9/1%.
