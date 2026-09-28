@@ -1,6 +1,6 @@
 # 02 — Run & Progression Structure
 
-**Status:** Draft v0.7  
+**Status:** Draft v0.8  
 **Date:** 2026-09-28
 
 ## Purpose of a run
@@ -91,6 +91,39 @@ This keeps progression comparable between:
 - a six-enemy swarm.
 
 A six-enemy encounter therefore counts as one completed encounter unless a special rule says otherwise.
+
+### Normalized Location Progress
+
+World-progression milestones are tied to **normalized Location Progress**, not to a hard-coded absolute number of physical fights.
+
+For a normal 10-Stage Location, each Stage spans 10 progress units:
+
+```
+LocationProgress = 0..100
+Stage 1 = 0..10
+Stage 2 = 10..20
+...
+Stage 10 = 90..100
+```
+
+If a Stage currently requires `R` encounters because of Stage Compression, completing encounter `k` in Stage `S` reaches:
+
+```
+LocationProgress =
+10 × (S - 1)
++ 10 × k / R
+```
+
+This means permanent encounter reduction makes the player cross the same World Progress milestones with fewer actual fights.
+
+If one encounter crosses several milestones, resolve them in ascending progress order.
+
+Example ordering:
+
+1. permanent Power unlock;
+2. Power Choice milestone.
+
+Farming after a Stage is already complete does not continue increasing Location Progress.
 
 ### Auto Push
 
@@ -257,6 +290,24 @@ The same boss should become easier across account progression, allowing the play
 
 Later start points prevent this from becoming endless repetitive busywork.
 
+## Boss encounter persistence and repeat rewards
+
+A required Location Boss is a progression checkpoint, not a repeat-farm node in the first implementation.
+
+Rules:
+
+- the Boss grants its clear rewards once per run;
+- after the Boss is defeated, it is considered cleared for that run and is not repeatedly farmable;
+- a hero death does **not** abandon the Boss: enemy HP and Boss state remain according to Combat rules;
+- save/load and offline absence do **not** abandon the Boss;
+- if the player deliberately selects another Stage or Location while a Boss / encounter is still unfinished, that encounter is abandoned;
+- an abandoned encounter grants no completion reward;
+- returning later creates a fresh encounter with full enemy HP and initial phase state.
+
+This prevents storing many partially damaged fights while preserving the intended death/revive chip-damage loop inside the active encounter.
+
+Repeated Boss farming may be reconsidered for later content if a specific farming loop needs it.
+
 ## Run phases
 
 ### Phase 1 — Rebuild
@@ -394,38 +445,53 @@ A Power such as `EXP Multi ×5` multiplies EXP income. It does not directly move
 
 ## First-Location reference cadence
 
-The first Location is normalized to the Idle Superpowers original-timeline progression from reference levels 1–70.
+The first Location is normalized to the Idle Superpowers Original Timeline progression from reference levels 1–70.
 
-Baseline:
+Reference behavior used for the baseline:
+
+- Powers first become available at reference level 2;
+- a normal Power reward occurs after completing level 1 and then after completing level 50;
+- the first Original Timeline run grants an additional Power after completing level 30;
+- Progress achievements unlock Powers at levels 20, 30, 40, 50, 60 and 70.
+
+Our first Location maps that cadence onto normalized Location Progress.
+
+Baseline without Stage Compression:
 
 ```
-10 Stages × 10 required encounters = 100 required encounters
+10 Stages × 10 required encounters = 100 progress units
 ```
 
-Reference milestone mapping:
+Reference mapping:
 
 ```
-FirstRunEncounterMilestone(L) = ceil(100 × (L - 1) / 69)
+ProgressMilestone(L) = ceil(100 × (L - 1) / 69)
 ```
 
-where `L` is the equivalent reference level.
+where `L` is the reference-equivalent level reached.
 
-| Reference equivalent | First-run cumulative encounter | Purpose |
-|---:|---:|---|
-| 2 | 2 | first Power choice |
-| 10 | 14 | gear drops begin / gear loop introduced |
-| 20 | 28 | Progress unlock: Stormbrand analogue |
-| 30 | 43 | Progress unlock + special first-run Power choice |
-| 40 | 57 | next Progress Power unlock |
-| 50 | 72 | Progress unlock + normal Power choice |
-| 60 | 86 | next Progress Power unlock |
-| 70 | 100 | final first-Location Progress unlock + Location Boss |
+Authoritative first-Location milestones:
 
-These encounter numbers are a first-run calibration table, not a separate leveling system.
+| Location Progress | Reference event | Project event |
+|---:|---|---|
+| 2 | complete level 1 / reach 2 | first Power Choice: fixed 1-of-3 starter offer |
+| 14 | reach 10 | gear drops begin |
+| 28 | reach 20 | Stormbrand unlocks |
+| 43 | reach 30 | Ghost Step unlocks |
+| 44 | complete level 30 / reach 31 | special **first-run-only** Power Choice |
+| 57 | reach 40 | Flame Ward unlocks |
+| 72 | reach 50 | Force Grip unlocks |
+| 73 | complete level 50 / reach 51 | normal Power Choice |
+| 86 | reach 60 | Battle Insight unlocks |
+| 100 | reach 70 | Trickster Form unlocks + Location Boss |
 
-The denominator is 69 because the reference starts at level 1: reaching level 70 requires clearing levels 1–69. With the baseline 10 enemies per level, that is 690 ordinary enemy kills before the level-70 boss.
+On the no-compression first run, progress units approximately correspond to cumulative encounters, so the same numbers are visible as encounter milestones.
 
-The authoritative trigger is normalized World Progress through the Location. When Stage Compression lowers required encounters, the player reaches the same World Progress milestones with fewer actual fights, matching the purpose of the reference Sublevel upgrade.
+With Stage Compression, the number of actual encounters changes but milestone positions do not.
+
+If a compressed encounter crosses both an unlock and a choice threshold, resolve the unlock first.
+
+The denominator is 69 because reaching reference level 70 requires clearing levels 1–69. With the reference baseline of 10 enemies per level, that is 690 ordinary enemy kills before the level-70 Boss.
 
 ## Powers come from multiple sources
 
@@ -795,6 +861,9 @@ The following are currently considered design decisions rather than hypotheses:
 20. World Progress and EXP are separate systems; there is no XP-driven Run Level.
 21. Offline farming grants routine rewards from an already-completed normal Stage without advancing the frozen combat or World Progress.
 22. Offline baseline is 6h cap, 50% efficiency and 60s minimum encounter time; enemy count/composition do not affect offline clear rate.
+23. World milestones use normalized Location Progress rather than absolute encounter count, so Stage Compression crosses the same milestones with fewer fights.
+24. First-Location special choice is first-run-only at progress 44; the normal level-50-equivalent choice is at progress 73.
+25. Location Boss rewards are first-clear-per-run; deliberate navigation away from an unfinished encounter abandons it and returning starts a fresh encounter.
 
 ## Open questions for later sections
 
@@ -805,6 +874,5 @@ The following are currently considered design decisions rather than hypotheses:
 5. Exact EXP income and primary-stat upgrade cost curves.
 6. Final Power-choice cadence beyond the reference-first early-game baseline.
 7. Starting-foundation implementation.
-9. Exact first-Location encounter composition and teaching sequence.
-10. Exact source / cost of Stage Compression progression.
-11. Whether Overkill-style progression is a Power, permanent upgrade, or both.
+9. Exact source / cost of Stage Compression progression.
+10. Whether Overkill-style progression is a Power, permanent upgrade, or both.
