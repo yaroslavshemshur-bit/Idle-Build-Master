@@ -1,6 +1,6 @@
 # 00 — UI / UX Specification
 
-**Status:** Draft v0.2  
+**Status:** Draft v0.3  
 **Date:** 2026-09-28  
 **Platform:** Mobile  
 **Orientation:** Portrait
@@ -2118,26 +2118,31 @@ If any step requires a hidden debug action or unexplained state change, the UI f
 
 ---
 
-# 46. Open UI decisions
+# 46. Open / Later UI decisions
 
-The following are intentionally not locked by this specification:
+The following are intentionally not required for the first playable implementation:
 
 1. Final visual style, colors and fonts.
 2. Exact bottom-navigation iconography.
 3. Whether Stats eventually gets Buy ×10 / Buy Max.
-4. Inventory capacity and overflow behavior.
-5. Sell / salvage UI.
-6. Exact reset / Prestige screen.
-7. Collections screen layout.
-8. Achievement / Mastery screen layout.
-9. Monetization / Shop screens.
-10. Cloud-save/account UI.
-11. Exact inventory overflow presentation for large offline loot batches.
-12. Whether Bosses can be manually re-farmed after being defeated in the current run.
-13. Advanced PowerDex search/filter UI.
-14. Future loadouts / gear profiles.
+4. Sell / salvage / auto-disposal UI.
+5. Exact reset / Prestige screen.
+6. Collections screen layout.
+7. Achievement / Mastery screen layout.
+8. Monetization / Shop screens.
+9. Cloud-save/account UI.
+10. Advanced PowerDex search/filter UI.
+11. Future loadouts / gear profiles.
+12. Future inventory-cap / overflow UI if a hard capacity is introduced later.
+13. Future repeat-Boss farming UI if later content explicitly adds repeatable Boss rewards.
 
-These should be decided when their dependent game systems are designed.
+Current baseline:
+
+- inventory has no hard capacity;
+- no overflow UI is required;
+- defeated required Location Bosses are not repeat-farmed in the same run.
+
+Later items should be decided when their dependent game systems are designed.
 
 ---
 
