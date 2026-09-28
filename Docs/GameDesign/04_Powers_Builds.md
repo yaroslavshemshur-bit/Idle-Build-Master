@@ -1,6 +1,6 @@
 # 04 — Powers & Build Archetypes
 
-**Status:** Draft v0.3  
+**Status:** Draft v0.4  
 **Date:** 2026-09-28
 
 ## Power-system philosophy
@@ -103,24 +103,42 @@ Working baseline:
 
 **Choose 1 from several offered Powers.**
 
-The exact starting offer count is a balance question.
+The exact normal offer count remains a tunable content/balance value.
+
+The first starter choice is the already locked deliberate deviation: fixed 1-of-3.
 
 Permanent progression can increase the number of Powers shown per choice.
 
 This is an important RNG-control lever.
 
-As the account unlocks more Powers, the total pool becomes broader. To compensate, later progression can provide tools such as:
+### Power Choice lifecycle
 
-- more offered choices;
-- rerolls;
-- banish / exclude;
-- starting Powers;
-- protected build directions;
-- future filtering or weighting systems.
+A generated Power Choice is durable run state.
 
-The intended long-term tension is:
+Rules:
 
-**More possible builds → larger RNG pool → more permanent tools to control that RNG.**
+- reaching a choice milestone generates the offer exactly once;
+- generated cards are stored and survive save/load unchanged;
+- opening/closing UI never rerolls the offer;
+- already-owned normal Powers are excluded from eligibility;
+- if eligible count is smaller than the configured offer count, show every eligible Power rather than inserting duplicates;
+- multiple earned choices queue in milestone order.
+
+A Power Choice with at least one eligible option is a **blocking strategic decision**:
+
+- combat/progression pauses;
+- the player must resolve the oldest pending choice before simulation continues.
+
+If a choice credit is earned while the eligible pool is empty:
+
+- do not open an empty blocking modal;
+- keep the choice credit pending;
+- simulation may continue;
+- when a new eligible Power later unlocks, the pending credit becomes resolvable.
+
+This matches the reference behavior that an empty Power modal should not block progression, while preserving our deliberate stronger-choice UX once an actual decision exists.
+
+Unlocks crossed in the same progression action are applied before generating a choice that occurs later in that action.
 
 ## No hard simultaneous-Power cap
 
@@ -768,6 +786,10 @@ This lets a relatively small development team create a large Power library.
 20. First prototype implementation target is approximately 20–25 total Powers, exposed gradually.
 21. World Progress, stat Achievements, Collections, Challenges and Prestige are distinct Power-unlock/control channels.
 22. Portable Powers and increased offered-choice count are planned as core RNG-control progression.
+23. Generated Power offers are durable state and do not reroll on UI reopen or save/load.
+24. Pending choices resolve in milestone order; owned normal Powers are excluded from offers.
+25. A choice with zero eligible Powers remains as a non-blocking pending credit until an eligible Power unlocks.
+26. A choice with at least one eligible Power pauses combat/progression until resolved.
 
 ## Next design task
 
