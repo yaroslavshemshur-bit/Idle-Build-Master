@@ -83,13 +83,13 @@ StatResult: value, orderedContributions, dependencyTrace
 
 A modifier operation is an explicit enum/handler, not free-form expression code. Expressions are a bounded typed tree of supported constants, stat reads, contextual reads and mathematical operations. Compile dependencies to a directed acyclic graph; reject cycles with a path explaining the offending content.
 
-Distinguish a baseline stat read from a resolved stat read and a contextual snapshot read. Every conversion declares which it consumes. This is needed for Accuracy-to-Min-Damage and Block-to-Max-Damage; it does not settle document 02 D02 by implication.
+Distinguish a baseline stat read from a resolved stat read and a contextual snapshot read. Every conversion declares which it consumes. This supports Accuracy-to-Min-Damage and Block-to-Max-Damage; the approved D02 semantics require these conversions to read fully resolved source stats before the target stat's own multiplier.
 
 Implement the agreed additive/multiplicative layers as a compiled evaluation plan. Temporary modifiers invalidate downstream stats; do not simply adjust Strength after derived damage has already been finalized. A content rule that cannot be expressed consistently with the agreed ordering must fail validation until its semantics are clarified.
 
-Target-dependent values are evaluated in an actor/target context and must not leak into an actor-global cache. HP-dependent values invalidate when relevant HP changes. A MaxHP change emits a transition intent resolved by `HealthRebasePolicy`; the evaluator itself never heals, damages or kills an entity as a side effect.
+Target-dependent values are evaluated in an actor/target context and must not leak into an actor-global cache. HP-dependent values invalidate when relevant HP changes. A MaxHP change emits a transition intent resolved by the approved percentage-preserving HealthRebasePolicy; the evaluator itself never emits damage/heal/death side effects.
 
-Debug queries return contribution traces without rerunning RNG or mutating state. Use the same evaluation for UI comparisons, combat and offline efficiency input.
+Debug queries return contribution traces without rerunning RNG or mutating state. Use the same evaluation for UI comparisons and combat. Offline farming rate does not depend on combat stats under the current design.
 
 ## 7. Effects and actions
 
@@ -111,7 +111,7 @@ Separate effect operations from trigger eligibility: a damage operation is not a
 
 ## 8. Resolution pipeline
 
-Use explicit stages: prepare intent, validate/replace/cancel, compute proposed result, apply fatal prevention, commit damage/healing, resolve reactions, resolve death/revive, resolve encounter transition. This is a technical transaction model; exact trigger placement follows the approved Combat rules and must resolve D03 before production combat is enabled.
+Use explicit stages: prepare intent, validate/replace/cancel, compute proposed result, apply fatal prevention, commit damage/healing, resolve reactions, resolve death/revive, resolve encounter transition. This is a technical transaction model; exact trigger placement follows the approved Combat rules and uses the resolved D03 transaction semantics from document 02.
 
 Retain separate values for rolled damage, outgoing-modified damage, mitigated damage and actual HP lost. Reflect/healing handlers select an explicit basis in content; they cannot all consume an ambiguous field named `damage`.
 
@@ -131,7 +131,7 @@ Enemy death and encounter completion are separate facts. Completion is committed
 
 Record reward share claims atomically with the death/completion that grants them. Floating/discrete splitting and modifier timing follow approved economy rules; retain remainder explicitly if the selected economy uses integer rewards. Repeated farming creates a new encounter ID and a new ledger.
 
-Death is not generic encounter failure. Use explicit alive/downed/reviving actor state and allow the existing encounter to continue. The policy governing enemy timers, phase progression and effect persistence during downed time is a required rules field (D06), not a controller default.
+Death is not generic encounter failure. Use explicit alive/downed/reviving actor state and allow the existing encounter to continue. The resolved D06 policy pauses enemy attack clocks, Boss phase clocks, enemy timed effects and enemy regeneration while the hero is downed, unless content explicitly overrides it.
 
 Boss behavior is a serializable state machine with state ID, entry time, local variables and scheduled transitions. Custom behavior implements the same snapshot/restore interface as authored state machines. No coroutine is the sole authority for a boss phase.
 
