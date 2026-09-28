@@ -71,11 +71,6 @@ Implement only the already-defined extension boundaries needed to avoid architec
 - A11 selects rebasing to current balance. Rules for HP adjustment, modified effect durations and removed phase states are migration inputs; preserve the source save if an update supplies no valid transformation. This is not permission to reset or compensate the player arbitrarily.
 - The future administration interface manages supported content schemas. Whether future executable gameplay changes require an application update remains a technical design decision; remote data delivery alone does not imply arbitrary code updates.
 
-## Resolved implementation questions — owner, 2026-09-28
-
-- **D03 — fatal prevention:** apply the proposed HP loss first, then restore HP if a fatal-prevention effect succeeds. The action's committed damage and notification fields must reflect the final post-prevention outcome; saving is allowed only after the full action is resolved.
-- **D06 — downed hero:** while the hero is downed and regenerating, enemy attack timers, Boss phase timers and effects on enemies are paused. Enemy HP remains unchanged except for already-resolving actions; resume those clocks when the hero revives.
-
 ## Resolved gameplay implementation decisions — 2026-09-28
 
 The following rules are now approved for current PvE implementation.
@@ -126,4 +121,4 @@ Each specification must distinguish approved decisions, proposed defaults and un
 
 ## Review checkpoint
 
-The initial review was documentation-only. Subsequent implementation added the T02–T08 foundations summarized in `01_Engineering_Handoff.md`; dependent production rules remain pending in this register. See the current Git status and latest handoff for verification and changed-file state.
+The initial review was documentation-only. Subsequent implementation added foundations summarized in `01_Engineering_Handoff.md`. The current PvE D01–D14 register is resolved; remaining Arena/PvP and future-feature questions are explicitly Later and do not block current PvE implementation. See the current Git status and latest handoff for verification and changed-file state.
