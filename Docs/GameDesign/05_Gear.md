@@ -1,6 +1,6 @@
 # 05 — Gear
 
-**Status:** Draft v0.3  
+**Status:** Draft v0.4  
 **Date:** 2026-09-28
 
 ## Purpose
@@ -161,6 +161,16 @@ The player should be able to think:
 
 Named items are one of the main bridges between world content and buildcraft.
 
+### Named-item affix rule
+
+First implementation:
+
+- named items use their authored fixed identity/effect;
+- named items do **not** roll the ordinary procedural affix set by default;
+- a future named item may explicitly opt into procedural affixes through its own definition.
+
+This keeps a targeted named drop predictable and avoids turning its identity into another rarity-roll problem.
+
 ## Rarity
 
 First implementation uses a readable rarity ladder close to the reference direction:
@@ -248,13 +258,33 @@ It must be conservative.
 
 ### Safe auto-equip
 
-Automatically equip an item only when it is an obvious upgrade under the current comparison rules.
+Automatically equip an item only when it is a strict, context-free dominance upgrade.
 
-Example:
+First implementation comparison:
 
-- same slot;
-- no special mechanic is lost;
-- the new item is equal or better across all compared baseline stats.
+1. resolve the hero's neutral baseline stat snapshot with the currently equipped item;
+2. resolve the same snapshot with the candidate item;
+3. compare:
+   - Min Damage;
+   - Max Damage;
+   - Max Health;
+   - Regeneration;
+   - Accuracy;
+   - Evasion;
+   - Block;
+   - attacks per second;
+4. candidate must be **not lower in every compared output** and **strictly higher in at least one**.
+
+Auto Equip does not replace an item if either side contains:
+
+- a named/unique effect;
+- an event trigger;
+- a conditional effect;
+- another mechanic whose value depends on encounter/build context.
+
+Those items require manual review.
+
+This is intentionally conservative rather than attempting to score build value.
 
 ### Ambiguous trade-off
 
@@ -272,6 +302,10 @@ A locked item:
 - is not auto-sold;
 - is not auto-destroyed;
 - is not replaced by Auto Equip without explicit permission.
+
+**Lock is not reset retention.**
+
+Reset protection/retention is a separate future permanent-progression flag/system.
 
 ## Future Auto Equip profiles
 
@@ -319,6 +353,21 @@ The run can pivot.
 Named items can create rule-breaking effects normally unavailable from basic stats.
 
 This is the most valuable long-term gear design space.
+
+## Inventory capacity
+
+First implementation has **no hard inventory capacity**.
+
+Therefore:
+
+- normal drops are never rejected because a bag is full;
+- offline reward batches do not lose items to overflow;
+- no overflow mailbox is required for MVP;
+- inventory performance must still be tested with large item counts.
+
+A future inventory cap may be introduced only together with explicit overflow/disposal rules.
+
+Sell / salvage / auto-disposal are **Later** systems and are not required for the first playable Location.
 
 ## Gear and reset
 
@@ -454,13 +503,19 @@ Exact slot weighting and later-location loot tables remain open.
 20. Normal/Elite rarity chances are 60/25/10/4/0.9/0.1% from Common through Godlike.
 21. First Boss guarantees one procedural item with Rare/Epic/Legendary/Godlike chances of 60/30/9/1%.
 22. Stage 8 Hobgoblin Guard has a separate 5% named-item roll for Hobgoblin Bulwark.
+23. First implementation has no hard inventory capacity and therefore no item-overflow loss.
+24. Named items do not roll ordinary procedural affixes unless the item definition explicitly opts in.
+25. Lock protects against automatic handling but is separate from reset retention.
+26. Auto Equip only performs strict context-free dominance upgrades and never evaluates named/triggered/conditional effects automatically.
+27. Location Boss guaranteed gear is a first-clear-per-run reward under Run Progression rules.
 
-## Open questions
+## Later / not required for the first playable Location
 
-1. Whether named items can also roll random procedural affixes.
-2. Initial inventory capacity / overflow behavior.
-3. Sell / salvage behavior.
-4. Exact retained-gear progression.
-5. Exact slot weighting / slot biases.
-6. Whether defeated Bosses can be repeatedly farmed within the same run.
-7. Later-location rarity and Item Level progression.
+The following do not block current implementation:
+
+1. Sell / salvage / auto-disposal behavior.
+2. Exact retained-gear progression.
+3. Exact slot weighting / slot biases.
+4. Later-location rarity and Item Level progression.
+5. Possible future inventory capacity and overflow rules.
+6. Named items that explicitly opt into hybrid fixed + procedural affixes.
